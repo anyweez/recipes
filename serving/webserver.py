@@ -46,6 +46,14 @@ class Index(object):
 		with open('web/index.html') as fp:
 			return fp.read()
 
+class Ingredients(object):
+	def GET(self):
+		# also 'amount' (float) and 'amountUnits' (string)
+		return json.dumps({ 'data': 
+			[{'name': 'Cranberry sauce', 'id': 'm/0709jg'},
+			 {'name': 'Chocolate', 'id': 'm/020vl'}]
+		})
+
 if __name__ == '__main__':
 	app = web.application(urls, globals())
 	app.run()

@@ -55,6 +55,8 @@ message Recipe {
 	
 	// Absolute URL's to images of the finished product.
 	repeated string image_urls = 6;
+	// The URL that the resource originally lived at.
+	optional string source_url = 7;
 }
 
 // A container for holding a set of recipes, primarily for writing to
@@ -76,4 +78,8 @@ message RecipeRequest {
 message RecipeResponse {
 	optional string test = 1;
 	repeated string recipe_ids = 2;
+
+	repeated Recipe recipes = 3;
+	// Duration in milliseconds
+	optional float duration = 4;
 }

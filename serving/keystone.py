@@ -1,3 +1,4 @@
+from pymongo import MongoClient
 
 ## Keystone is the middleware the functions between the web server
 ## frontend and the databases. Its general tasks include:
@@ -11,6 +12,9 @@
 
 import juggle.lib.juggle as juggle
 import proto.Recipes_pb2 as proto
+
+docdb = MongoClient('mongodb://localhost:27017/')
+docs = docdb.docs.recipes
 
 def frontend_request(request):
 	return request
@@ -40,8 +44,17 @@ def handle(request):
 	# and add the additional content.
 	resp = backend.query(request)
 
-	# TODO: fetch recipe docs from mongo
-	
+	# Retrieve docs from mongo
+	for rid in resp.recipe_ids:
+		doc = docs.find_one( {'_id': int(rid)} )
+
+		if doc is None:
+			print 'Recipe %s found in graph but not retrievable.' % rid
+		else:
+			recipe = proto.Recipe()
+			recipe.ParseFromString(doc['data'])
+			resp.recipes.extend( [recipe] )
+
 	return resp
 
 def run():

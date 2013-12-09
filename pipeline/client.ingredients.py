@@ -51,7 +51,7 @@ if __name__ == '__main__':
 		logging.info( 'Parsing %s' % fn )
 		docparser.use(doc)
 
-		title = docparser.title()
+		name = docparser.title()
 		prep_time = docparser.prep_time()
 		cook_time = docparser.cook_time()
 		ready_time = docparser.ready_time()
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 		
 		recipe = recipes.Recipe(
 			id=count,
-			title=title,
+			name=name,
 			prep_time=prep_time,
 			cook_time=cook_time,
 			ready_time=ready_time,
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 		count += 1
 		print "%d / %d completed [ %.1f %% ]" % (count, recipe_count, (float(count) / float(recipe_count)) * 100)
 
-	outfile_name = 'recipes-%s.bin' % dt.datetime.now().strftime('%y%m%d')
+	outfile_name = 'data/recipes-%s.bin' % dt.datetime.now().strftime('%y%m%d')
 
 	print book.recipes[10].id
 	print 'Writing %d recipes to %s...' % (len(book.recipes), outfile_name)

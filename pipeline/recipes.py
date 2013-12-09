@@ -30,10 +30,10 @@ class Ingredient(object):
 			return "[name: %s, quantity: %.1f %s]" % (self.name(), self.amount(), self.units())
 		
 class Recipe(object):
-	def __init__(self, id, title, prep_time, cook_time, ready_time, serving_size, ingredients):
+	def __init__(self, id, name, prep_time, cook_time, ready_time, serving_size, ingredients):
 		self.data = proto.Recipe()
 		self.data.id = id
-		self.data.title = title
+		self.data.name = name
 		self.data.time.prep = prep_time
 		self.data.time.cook = cook_time
 		self.data.time.ready = ready_time

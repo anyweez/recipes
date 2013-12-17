@@ -124,6 +124,10 @@ def find_ingrids(name_str):
 ## 
 def parse(qry):
 	print 'starting "%s"' % qry
+	
+	with open('ingredient_strings.txt', 'a') as fp:
+		fp.write('%s\n' % qry)
+	
 	# General approach: list of terms that are "units" (cup, can, etc)
 	# Everything before the unit is the quantity, everything after is
 	# the ingredient name.
@@ -155,8 +159,11 @@ if __name__ == '__main__':
 		lines = [line.strip() for line in fp_ingredients.readlines()]
 		
 		for line in lines:
-			ingrid, name = line.split('\t')
-			ingredient_list[name.lower()] = ingrid
+			try:
+				ingrid, name = line.split('\t')
+				ingredient_list[name.lower()] = ingrid
+			except ValueError:
+				print 'Warning: incomplete ingredient line: %s' % line
 	
 	ingredients = jugglelib.Service('ingredients', 19001)
 	ingredients.handler(parse)

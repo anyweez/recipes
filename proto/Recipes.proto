@@ -7,6 +7,14 @@ message Ingredient {
 		COUNT   = 3;
 		UNKNOWN = 4;
 	}
+
+	enum Quantity {
+		optional float original_amount = 1;
+		optional int normalized_amount = 2;
+
+		optional string original_unit_string = 3;
+                optional QuantityType original_type = 4;
+	}
 	
 	// Modifiers are used for describing "post processing" steps for an
 	// ingredient, but do not describe the ingredient itself.
@@ -20,7 +28,8 @@ message Ingredient {
 	// Ex: [confectioners' sugar for dusting]
 	// See common.get_num() for more details.
 	optional double amount = 1;
-	optional QuantityType quantity = 2;
+//	optional QuantityType quantity = 2;
+	optional Quantity quantity = 2;
 	
 	// Only used for UNKNOWN QuantityTypes. Used for things that can't
 	// reliably be broken down into units, like "packets".

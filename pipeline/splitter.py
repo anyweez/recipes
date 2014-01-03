@@ -1,5 +1,5 @@
 import nltk
-import proto.Recipes_pb2 as proto
+import recipes.proto.Recipes_pb2 as proto
 
 class Segments(object):
 	QUANTITY, INGREDIENT = range(1, 3)

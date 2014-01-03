@@ -1,5 +1,5 @@
 import juggle.lib.juggle as jugglelib
-import proto.Recipes_pb2 as proto
+import recipes.proto.Recipes_pb2 as proto
 import logging, re, sys, nltk
 import lib.common as common
 import splitter
@@ -123,7 +123,7 @@ def decode(string):
 
 if __name__ == '__main__':
 	print 'Reading full ingredient list...'
-	with open(sys.argv[1]) as fp_ingredients:
+	with open('data/ingredients.list') as fp_ingredients:
 		lines = [line.strip() for line in fp_ingredients.readlines()]
 		
 		for line in lines:

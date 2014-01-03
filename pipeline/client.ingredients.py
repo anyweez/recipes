@@ -1,7 +1,7 @@
 import juggle.lib.juggle as jugglelib
 import recipes.proto.Recipes_pb2 as proto
 import parsers.AllRecipes as docparser
-import repr.structs as recipes
+import wrappers.recipes as recipes
 import os, os.path, logging, sys
 import datetime as dt
 import time

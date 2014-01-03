@@ -73,7 +73,7 @@ if __name__ == '__main__':
 			print 'completed'
 		timing['ingredients_parsed'] = time.time()
 
-		recipe = recipe.Recipe(
+		next_recipe = recipe.Recipe(
 			id=count,
 			name=name,
 			prep_time=prep_time,
@@ -85,7 +85,7 @@ if __name__ == '__main__':
 			
 		# Recommended technique for adding a message to a repeated field.
 		# Seems weird but it works.
-		book.recipes.extend([recipe.data])
+		book.recipes.extend([next_recipe.data])
 
 		count += 1
 		print "%d / %d completed [ %.1f %% ]" % (count, recipe_count, (float(count) / float(recipe_count)) * 100)

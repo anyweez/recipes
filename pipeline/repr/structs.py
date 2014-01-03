@@ -1,4 +1,4 @@
-import proto.Recipes_pb2 as proto
+import recipes.proto.Recipes_pb2 as proto
 
 ## Contains data structures used for storing, printing, and manipulating
 ## recipe-related data.

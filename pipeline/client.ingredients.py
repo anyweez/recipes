@@ -1,9 +1,10 @@
 import juggle.lib.juggle as jugglelib
-import proto.Recipes_pb2 as proto
+import recipes.proto.Recipes_pb2 as proto
 import parsers.AllRecipes as docparser
-import recipes
+import repr.structs as recipes
 import os, os.path, logging, sys
 import datetime as dt
+import time
 
 ## This script starts a client that batch processes a set of HTML files and generates
 ## structured Recipes out of them. It depends on having a running ingredients service
@@ -20,6 +21,8 @@ logging.getLogger().setLevel(logging.INFO)
 
 # Directory where all recipe HTML files can be found.
 RECIPE_DIRECTORY = sys.argv[1]
+
+timing = {}
 
 # Sending a string, so this is a passthrough.
 def encode(obj):
@@ -44,10 +47,12 @@ if __name__ == '__main__':
 	count = 0
 	
 	for fn in [f for f in os.listdir(RECIPE_DIRECTORY) if os.path.isfile('/'.join([RECIPE_DIRECTORY, f]))]:
+		timing['start'] = time.time()
 #		logging.info( 'Reading %s' % fn )
 		with open("%s/%s" % (RECIPE_DIRECTORY, fn)) as fp: 
 			doc = fp.read()
-	
+		timing['loaded'] = time.time()
+
 		logging.info( 'Parsing %s' % fn )
 		docparser.use(doc)
 
@@ -57,13 +62,17 @@ if __name__ == '__main__':
 		ready_time = docparser.ready_time()
 		servings = docparser.servings()
 		ingrs = docparser.ingredients()
+		timing['page_parsed'] = time.time()
 
 		docparser.clear()
 
 		ingredients = []
 		for ingr in ingrs:
+			print 'waiting'
 			ingredients.append( ingredient_service.query(ingr) )
-		
+			print 'completed'
+		timing['ingredients_parsed'] = time.time()
+
 		recipe = recipes.Recipe(
 			id=count,
 			name=name,
@@ -80,6 +89,8 @@ if __name__ == '__main__':
 
 		count += 1
 		print "%d / %d completed [ %.1f %% ]" % (count, recipe_count, (float(count) / float(recipe_count)) * 100)
+		print 'Timing: [loaded %.2f, page parsed %.2f, ingr parsed %.2f]' % (timing['loaded'] - timing['start'], timing['page_parsed'] - timing['loaded'], timing['ingredients_parsed'] - timing['page_parsed'])
+		print 'Total: %.2f' % (timing['ingredients_parsed'] - timing['start'])
 
 	outfile_name = 'data/recipes-%s.bin' % dt.datetime.now().strftime('%y%m%d')
 

@@ -1,7 +1,7 @@
 import juggle.lib.juggle as jugglelib
 import recipes.proto.Recipes_pb2 as proto
 import parsers.AllRecipes as docparser
-import wrappers.recipes as recipes
+import wrappers.recipe as recipe
 import os, os.path, logging, sys
 import datetime as dt
 import time
@@ -33,13 +33,13 @@ def decode(string):
 	ingr = proto.Ingredient()
 	ingr.ParseFromString(string)
 	
-	return recipes.Ingredient(ingr)
+	return recipe.Ingredient(ingr)
 
 if __name__ == '__main__':
 	book = proto.RecipeBook()
 	
 	# Set up the ingredient service to parse ingredient strings.
-	ingredient_service = jugglelib.ServiceAPI('localhost', 19001)	
+	ingredient_service = jugglelib.ServiceAPI('10.1.1.86', 19001)	
 	ingredient_service.encoder(encode)
 	ingredient_service.decoder(decode)
 	
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 			print 'completed'
 		timing['ingredients_parsed'] = time.time()
 
-		recipe = recipes.Recipe(
+		recipe = recipe.Recipe(
 			id=count,
 			name=name,
 			prep_time=prep_time,

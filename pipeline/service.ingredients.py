@@ -1,7 +1,9 @@
 import juggle.lib.juggle as jugglelib
 import proto.Recipes_pb2 as proto
-import logging, re, sys
+import logging, re, sys, nltk
 import lib.common as common
+import splitter
+from pyparsing import Regex, Optional
 
 ## This script starts a service that will convert strings like [1 cup tomato sauce]
 ## into a structured ingredient. It will also identify terms listed in freebase
@@ -16,97 +18,26 @@ import lib.common as common
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
 
-# Base units:
-#   VOLUME: ounces
-#   MASS: ounces
-#   COUNT: (none)
-
-unit_map = {
-#	"can": (1, proto.Ingredient.UNKNOWN),
-#	"cans": (1, proto.Ingredient.UNKNOWN),
-	"cup": (8, proto.Ingredient.VOLUME),
-	"cups": (8, proto.Ingredient.VOLUME),
-#	"envelope": (1, proto.Ingredient.UNKNOWN),
-	"oz": (1, proto.Ingredient.VOLUME),
-	"ounce": (1, proto.Ingredient.VOLUME),        # always a volume?
-	"ounces": (1, proto.Ingredient.VOLUME),
-#	"package": (1, proto.Ingredient.UNKNOWN),
-	"pound": (16, proto.Ingredient.MASS),
-	"tablespoon": (.5, proto.Ingredient.VOLUME),
-	"tablespoons": (.5, proto.Ingredient.VOLUME),
-	"teaspoon": (.166667, proto.Ingredient.VOLUME),
-	"teaspoons": (.166667, proto.Ingredient.VOLUME)
-}
-
-## Abstract units aren't linked to a particular quantity in base units.
-## They should still be a part of the ingredient description.
-abstract_units = [
-	"package",
-	"packages",
-	"envelope",
-	"envelopes",
-	"pinch",
-	"pinches",
-	"bottle",
-	"bottles"
-]
-
 # A map containing all ingredients linked to their ingrids.
 ingredient_list = {}
+ingr_splitter = splitter.IngredientSplitter()
 
-## Accepts a text string and splits it into:
-##   AMOUNT: numerical quantity of the ingredient
-##   UNIT:   the type of unit that the amount is represented in (proto.Ingredient.*)
-##   ABSTRACT_UNIT: if UNIT == UNKNOWN, this is a string describing the unknown unit
-##   NAME:   the name of the ingredient
-def ingr_split(text):
-	tokens = [tok.replace('(', '').replace(')', '') for tok in text.split()]
-	# 1) look for unit from unit_map, split on it
-	units = [unit for unit in unit_map.keys() if unit in tokens]
-	
-	# If no units are mentioned, will be an UNKNOWN unit type and this
-	# should try to figure out what the abstract unit is; falls into
-	# two categories:
-	#   - [1 package seasoning]
-	#   - [1 egg]
-	if len(units) is 0:
-		amount = common.get_num(tokens[0])
-		units = [u for u in abstract_units if u in tokens]
-		
-		if len(units) > 0:
-			name = ' '.join( text.split(units[0])[1:] ).strip()
-			print units[0]
-			return ( amount, proto.Ingredient.UNKNOWN, units[0], name )
-		else:
-			return ( amount, proto.Ingredient.UNKNOWN, None, ' '.join(tokens[1:]).strip() )
-			
-	# If there's one unit, this is the one that we should use.
-	# Two cases:
-	#   - [1 pound of lean ground beef]
-	#   - [2 (26 ounce) jars spaghetti sauce] 
-	elif len(units) is 1:
-		match = re.match(r'([0-9]+) \(([0-9./]+) ([a-zA-Z]+)\) ([a-zA-Z]+)', text)
-		# Case 2
-		if match:
-			containers = common.get_num(match.group(1))
-			size = common.get_num(match.group(2))
-			unit = unit_map[match.group(3)]
-			abstract_unit = match.group(4)
-						
-			return ( containers * size * unit[0], 
-					  unit[1], 
-					  None,
-					  text.split(abstract_unit)[1].strip() )
-		else:
-			i = tokens.index(units[0])
-			
-			amount = ' '.join(tokens[:i])
-			name = ' '.join(tokens[i+1:])
-			unit = unit_map[units[0]]
-			
-			return ( common.get_num(amount) * unit[0], unit[1], None, name.strip() )
-	else:
-		raise Exception("More than one unit identified in ingredient: %s", text)
+normalized_terms = {
+	'cup':	proto.Ingredient.CUP,
+	'cups': proto.Ingredient.CUP,
+	'tablespoon': proto.Ingredient.TABLESPOON,
+	'tablespoons': proto.Ingredient.TABLESPOON,
+	'teaspoon': proto.Ingredient.TEASPOON,
+	'teaspoons': proto.Ingredient.TEASPOON,
+	'quart': proto.Ingredient.QUART,
+	'quarts': proto.Ingredient.QUART,
+	'gallon': proto.Ingredient.GALLON,
+	'gallons': proto.Ingredient.GALLON,
+	'pound': proto.Ingredient.POUND,
+	'pounds': proto.Ingredient.POUND,
+	'pint': proto.Ingredient.PINT,
+	'pints': proto.Ingredient.PINT
+}
 
 ## Identifies all known ingrids (ingredient ID's, mapped back to freebase
 ## entities) that are present in the ingredient name. The graph database
@@ -121,27 +52,63 @@ def find_ingrids(name_str):
 	
 	return ingrids
 
+## extract_amount returns a string
+def split_amount_and_unit(quantity_str):
+	# This should really identify tokens that are only [0-9/]
+	quantity_regex = re.search( '^([0-9 /.]+)', quantity_str )
+
+	if quantity_regex:
+	        number = Regex(r"\d+(\.\d*)?").setParseAction(lambda t: float(t[0]))
+	        fraction = number('numerator') + '/' + number('denominator')
+        	fraction.setParseAction(lambda t: t.numerator / t.denominator)
+
+	        fraction_expression = fraction | number + Optional(fraction)
+        	fraction_expression.setParseAction(lambda t: sum(t))
+		
+		return ( fraction_expression.parseString(quantity_regex.group(1))[0], quantity_str[quantity_regex.end(1):] )
+	else:
+		return ( 0.0, quantity_str )
+
+## Looks for known terms that identify a standardized unit of measurement. This
+## function returns a quantity type if it can be found; otherwise it returns
+## the CUSTOM quantity type.
+##
+## Note that it is currently returning the definition of the first token
+## that it comes across. This seems to be the desired behavior in practice,
+## and having more than one token in a string is unlikely.
+def normalize_type(unit_string):
+	tokens = nltk.word_tokenize(unit_string)
+
+	for token in tokens:
+		try:
+			return normalized_terms[token]
+		except KeyError:
+			continue
+	
+	return proto.Ingredient.CUSTOM
+
 ## 
 def parse(qry):
 	print 'starting "%s"' % qry
-	
-	with open('ingredient_strings.txt', 'a') as fp:
-		fp.write('%s\n' % qry)
 	
 	# General approach: list of terms that are "units" (cup, can, etc)
 	# Everything before the unit is the quantity, everything after is
 	# the ingredient name.
 	ingr = proto.Ingredient()
+
+	quantity, ingredient = ingr_splitter.classify( qry )
+	ingr.ingrids.extend( find_ingrids(ingredient) )
+
+	amnt, unit = split_amount_and_unit(quantity)
+	print '< %s > < %s > < %s >' % (amnt, unit, ingredient)
 	
-	amount, unit, abstract_unit, name = ingr_split(qry)
-	ingr.ingrids.extend( find_ingrids(name) )
+	ingr.quantity.original_amount, ingr.quantity.original_unit_string = split_amount_and_unit( quantity )
+	ingr.quantity.original_type = normalize_type( ingr.quantity.original_unit_string )
+
+	# TODO: normalize the amount to a standard unit
+	# TODO: extract ingredient modifiers
 	
-	if unit is proto.Ingredient.UNKNOWN and abstract_unit is not None:
-		ingr.quantity_type = abstract_unit
-	
-	ingr.quantity = unit
-	ingr.amount = amount
-	ingr.name = name
+	ingr.name = ingredient
 
 	print 'completed query'
 	return ingr
@@ -155,6 +122,7 @@ def decode(string):
 	return string
 
 if __name__ == '__main__':
+	print 'Reading full ingredient list...'
 	with open(sys.argv[1]) as fp_ingredients:
 		lines = [line.strip() for line in fp_ingredients.readlines()]
 		
@@ -164,6 +132,17 @@ if __name__ == '__main__':
 				ingredient_list[name.lower()] = ingrid
 			except ValueError:
 				print 'Warning: incomplete ingredient line: %s' % line
+
+	print 'Training ingredient splitter...'
+	with open('data/ingredients.labeled.txt') as fp_training:
+		training = []
+		for line in fp_training.readlines():
+			if len( line.strip().split('\t') ) > 1:
+				training.append( line.strip().split('\t') )
+			else:
+				training.append( ('', line.strip()) )
+
+		ingr_splitter.train( training )
 	
 	ingredients = jugglelib.Service('ingredients', 19001)
 	ingredients.handler(parse)

@@ -8,26 +8,34 @@ class Ingredient(object):
 		self.data = ingr
 		
 	def amount(self):
-		return self.data.amount
+		return self.data.quantity.original_amount
 	
 	def name(self):
 		return self.data.name
 	
 	def units(self):
-		if self.data.quantity == proto.Ingredient.VOLUME:
-			return "ounces"
-		elif self.data.quantity == proto.Ingredient.MASS:
-			return "ounces"
-		elif self.data.quantity == proto.Ingredient.COUNT:
-			return ""
-		elif self.data.quantity == proto.Ingredient.UNKNOWN:
-			return self.data.quantity_type
+		if self.data.quantity.original_type == proto.Ingredient.CUP:
+			return 'cup' if self.data.quantity.original_amount < 1.05 else 'cups'
+		elif self.data.quantity.original_type == proto.Ingredient.TABLESPOON:
+			return 'tablespoon' if self.data.quantity.original_amount < 1.05 else 'tablespoons'
+		elif self.data.quantity.original_type == proto.Ingredient.TEASPOON:
+			return 'teaspoon' if self.data.quantity.original_amount < 1.05 else 'teaspoons'
+		elif self.data.quantity.original_type == proto.Ingredient.QUART:
+			return 'quart' if self.data.quantity.original_amount < 1.05 else 'quarts'
+		elif self.data.quantity.original_type == proto.Ingredient.GALLON:
+			return 'gallon' if self.data.quantity.original_amount < 1.05 else 'gallons'
+		elif self.data.quantity.original_type == proto.Ingredient.POUND:
+			return 'pound' if self.data.quantity.original_amount < 1.05 else 'pounds'
+		elif self.data.quantity.original_type == proto.Ingredient.PINT:
+			return 'pint' if self.data.quantity.original_amount < 1.05 else 'pints'
+		elif self.data.quantity.original_type == proto.Ingredient.CUSTOM:
+			return self.data.quantity.original_unit_string
 		
 	def __str__(self):
 		if self.amount() % 1 == 0:
-			return "[name: %s, quantity: %d %s]" % (self.name(), self.amount(), self.units())
+			return "[name: %s, quantity: %d %s, custom type? %r]" % (self.name(), self.amount(), self.units(), self.data.quantity.original_type == proto.Ingredient.CUSTOM)
 		else:
-			return "[name: %s, quantity: %.1f %s]" % (self.name(), self.amount(), self.units())
+			return "[name: %s, quantity: %.1f %s, custom type? %r]" % (self.name(), self.amount(), self.units(), self.data.quantity.original_type == proto.Ingredient.CUSTOM)
 		
 class Recipe(object):
 	def __init__(self, id, name, prep_time, cook_time, ready_time, serving_size, ingredients):

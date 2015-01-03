@@ -12,6 +12,12 @@ type Labeler int
 
 func (l *Labeler) GetIngredient(la *LabelerArgs, reply *proto.Ingredient) error {
 	log.Println( fmt.Sprintf("RPC REQUEST: [%s]", la.String()) )
+
+	// Strip out punctuation, etc (currently only comma)
+	la.IngredientString = strings.Replace(la.IngredientString, ",", "", -1)
+	la.IngredientString = strings.Replace(la.IngredientString, "(", "", -1)
+	la.IngredientString = strings.Replace(la.IngredientString, ")", "", -1)
+
 	reply.Name = gproto.String(la.IngredientString)
 	
 	// Break the phrase up into tokens.

@@ -69,7 +69,7 @@ func main() {
 					*recipe.Time.Ready) )
 			
 				for _, ingr := range recipe.Ingredients {
-					fmt.Println( fmt.Sprintf("  - %s", *ingr.Name) )
+					fmt.Println( fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")) )
 				}
 			}
 		}
@@ -102,7 +102,7 @@ func main() {
 				*recipe.Time.Ready) )
 			
 			for _, ingr := range recipe.Ingredients {
-				fmt.Println( fmt.Sprintf("  - %s", *ingr.Name) )
+				fmt.Println( fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")) )
 			}
 			
 			i += 1

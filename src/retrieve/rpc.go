@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	gproto "code.google.com/p/goprotobuf/proto"
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
+//	gproto "code.google.com/p/goprotobuf/proto"
 	"log"
 	"io/ioutil"
 	"net/http"
@@ -31,6 +33,10 @@ type GraphNode struct {
  * ingredients provided in the input IngredientList.
  */
 func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBook) error {
+	//session, _ := mgo.Dial(*MONGO)
+	session, _ := mgo.Dial("localhost:27017")
+	c := session.DB("recipes").C("parsed")
+	
 	log.Println("RPC REQUEST:" + strings.Join(il.Ingredients, ","))
 	url := fmt.Sprintf("http://%s/api/v1/query/gremlin", *OUTPUT_QUADS)
 
@@ -54,9 +60,8 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 	}
 	
 	for rid := range recipes {
-		recipe := proto.Recipe{
-			Id: gproto.String(rid),
-		}
+		recipe := proto.Recipe{}
+		c.Find(bson.M{ "id" : rid }).One(&recipe)
 		
 		reply.Recipes = append(reply.Recipes, &recipe)
 	}

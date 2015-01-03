@@ -18,7 +18,7 @@ import (
 
 var HTML_FILES = flag.String("files", "", "The HTML file that should be parsed.")
 var LABELER = flag.String("labeler", "127.0.0.1:14500", "The network location of a labeler RPC service.")
-var MONGO_ADDR = flag.String("mongo", "historian:27017", "The address for the mongo server.")
+var MONGO_ADDR = flag.String("mongo", "localhost:27017", "The address for the mongo server.")
 var OUTPUT_QUADS = flag.String("out", "graph.nq", "The file where the quads file should be output.")
 
 type PageRecord struct {
@@ -61,6 +61,11 @@ func writeRecipe(recipe proto.Recipe, out *os.File) {
 			out.WriteString( fmt.Sprintf("<%s> <contains> <%s> .\n", *recipe.Id, iid) )
 		}
 	}
+	
+	// Record the structured data to Mongo.
+	session, _ := mgo.Dial(*MONGO_ADDR)
+	c := session.DB("recipes").C("parsed")
+	c.Insert(recipe)
 }
 
 func main() {

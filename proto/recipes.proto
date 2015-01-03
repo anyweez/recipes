@@ -27,7 +27,11 @@ message Ingredient {
 	//   SWISS is not a modifier for CHEESE
 	//   CHOPPED is a modifier for CELERY
 	enum Modifier {
-		CHOPPED  = 1;
+		CHOPPED  	= 	1;
+		GRATED		=	2;
+		SHREDDED	=	3;
+		SLICED		=	4;
+		PEELED		=	5;
 	}
 	
 	// When amount == 0, this means that the quantity is unspecified.

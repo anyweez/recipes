@@ -10,13 +10,15 @@ import (
 	"log"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/rpc"
+	"strings"
 )
 
 var PORT = flag.Int("port", 14500, "The port the process should listen on.")
-var INGREDIENT_DB = flag.String("db", "data/ingredients", "A file containing triples that describe the name and mid of each ingredient.")
+var INGREDIENT_DB = flag.String("db", "data/ingredients.list", "A file containing triples that describe the name and mid of each ingredient.")
 
 // Big map that contains name => mid mappings, i.e. "onion" => "/m/0dj75"
 var IngredientMap map[string]string
@@ -41,6 +43,18 @@ func (l *LabelerArgs) String() string {
  */
 func loadMapping(filename string) {
 	IngredientMap = make(map[string]string)
+	
+	data, _ := ioutil.ReadFile(filename)
+	records := strings.Split(string(data), "\n")
+	
+	for _, record := range records {
+		pair := strings.Split(record, "\t")
+		if len(pair) != 2 {
+			log.Println("WARNING: Invalid ingredient mapping file; incomplete line doesn't include full pair:" + record)
+		} else {
+			IngredientMap[ strings.ToLower(pair[1]) ] = pair[0]
+		}
+	}
 }
 
 func main() {
@@ -49,6 +63,7 @@ func main() {
 	// Load the ingredient map.
 	log.Println("Loading ingredient map...")
 	loadMapping(*INGREDIENT_DB)
+	log.Println( fmt.Sprintf("Loaded %d ingredients.", len(IngredientMap)) )
 	
 	// Set up the RPC HTTP interface
 	labeler := new(Labeler)

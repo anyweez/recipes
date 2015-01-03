@@ -59,7 +59,7 @@ message Ingredient {
 // ./bin/recipes --mongodb=recipes --size=100 --path=output sample
 
 message Recipe {
-	optional uint32 id = 1;
+	optional string id = 1;
 	optional string name = 2;
 	optional Time time = 3;
 	optional float servings = 4;

@@ -4,12 +4,21 @@ import (
 	gproto "code.google.com/p/goprotobuf/proto"
 	html "golang.org/x/net/html"
 	labeler "labeler"
+	"fmt"
 	"log"
 	"net/rpc"
 	proto "proto"	
 	"strings"
 	"strconv"
 )
+var nextId uint32
+
+/**
+ * Initialize nextId to zero.
+ */
+func init() {
+	nextId = 0
+}
 
 func isTitleToken(token html.Token) bool {
 	for _, attr := range token.Attr {
@@ -68,6 +77,9 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 	}
 
 	recipe := proto.Recipe{}
+	recipe.Id = gproto.String( fmt.Sprintf("/r/%d", nextId) )
+	nextId += 1
+	
 	recipe.Time = &proto.Recipe_Time{
 		Prep: gproto.Uint32(0), 
 		Cook: gproto.Uint32(0), 

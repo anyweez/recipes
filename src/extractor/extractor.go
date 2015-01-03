@@ -4,18 +4,22 @@ import (
 	html "golang.org/x/net/html"
 	"bytes"
 	"flag"
+//	"encoding/json"
 	"fmt"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"log"
+//	"net/http"
 	"io/ioutil"
 	proto "proto"
+	"os"
 	"strings"
 )
 
 var HTML_FILES = flag.String("files", "", "The HTML file that should be parsed.")
 var LABELER = flag.String("labeler", "127.0.0.1:14500", "The network location of a labeler RPC service.")
 var MONGO_ADDR = flag.String("mongo", "historian:27017", "The address for the mongo server.")
+var OUTPUT_QUADS = flag.String("out", "graph.nq", "The file where the quads file should be output.")
 
 type PageRecord struct {
 	Id		bson.ObjectId `bson:"_id,omitempty"`
@@ -23,6 +27,13 @@ type PageRecord struct {
 	Page	[]byte
 	// The HTML content of the page.
 	Content	[]byte
+}
+
+type GraphComponent struct {
+	Subject		string	`json:"subject"`
+	Predicate	string	`json:"predicate"`
+	Object		string	`json:"object"`
+	Label		string	`json:"label"`
 }
 
 /**
@@ -37,9 +48,27 @@ func parse(data []byte) proto.Recipe {
 	return _parser(tk)
 }
 
+/**
+ * Output the recipe to Cayley's HTTP endpoint. This function selects the
+ * important fields from the Recipe data structure and posts them to Cayley.
+ */
+func writeRecipe(recipe proto.Recipe, out *os.File) {
+	out.WriteString( fmt.Sprintf("<%s> <named> \"%s\" .\n", *recipe.Id, *recipe.Name) )
+	// Create records for each ingredient ID linking to the recipe.
+	for _, ingr := range recipe.Ingredients {
+		// Iterate through each mid.
+		for _, iid := range ingr.Ingrids {	
+			out.WriteString( fmt.Sprintf("<%s> <contains> <%s> .\n", *recipe.Id, iid) )
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
 
+	output, _ := os.Create(*OUTPUT_QUADS)
+	defer output.Close()
+	
 	/**
 	 * Read from disk.
 	 */
@@ -71,6 +100,8 @@ func main() {
 				for _, ingr := range recipe.Ingredients {
 					fmt.Println( fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")) )
 				}
+				
+				writeRecipe(recipe, output)
 			}
 		}
 	/**
@@ -105,6 +136,7 @@ func main() {
 				fmt.Println( fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")) )
 			}
 			
+			writeRecipe(recipe, output)
 			i += 1
 		}
 	}

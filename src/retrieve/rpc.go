@@ -40,7 +40,7 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 	log.Println("RPC REQUEST:" + strings.Join(il.Ingredients, ","))
 	url := fmt.Sprintf("http://%s/api/v1/query/gremlin", *OUTPUT_QUADS)
 
-	recipes := make(map[string]bool, 0)
+	recipes := make(map[string]int, 0)
 	
 	for _, ingredient := range il.Ingredients {
 		// Body (Gremlin query)
@@ -55,15 +55,24 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 		
 		// Create a set.
 		for _, node := range gr.Result {
-			recipes[node.Id] = true
+			_, exists := recipes[node.Id]
+			if exists {
+				recipes[node.Id] += 1
+			} else {
+				recipes[node.Id] = 1
+			}			
 		}
 	}
 	
-	for rid := range recipes {
-		recipe := proto.Recipe{}
-		c.Find(bson.M{ "id" : rid }).One(&recipe)
+	for key, val := range recipes {
+		log.Println( fmt.Sprintf("%s => %d", key, val) )
+		// Keep the recipe if it was retrieved for each ingredient.
+		if val == len(il.Ingredients) {
+			recipe := proto.Recipe{}
+			c.Find(bson.M{ "id" : key }).One(&recipe)
 		
-		reply.Recipes = append(reply.Recipes, &recipe)
+			reply.Recipes = append(reply.Recipes, &recipe)
+		}
 	}
 		
 	return nil

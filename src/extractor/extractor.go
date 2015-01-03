@@ -88,11 +88,12 @@ func main() {
 		
 		c := session.DB("recipes").C("scraper")
 		
-		results := make([]PageRecord, 0)
-		c.Find(nil).All(&results)
+		var result PageRecord
+		iter := c.Find(nil).Iter()
 		
-		for i, page := range results {
-			recipe := parse(page.Content)
+		i := 0
+		for iter.Next(&result) {
+			recipe := parse(result.Content)
 			fmt.Println( fmt.Sprintf("%d. %s (%d min prep, %d min cook, %d min ready)", 
 				i+1, 
 				*recipe.Name, 
@@ -103,6 +104,8 @@ func main() {
 			for _, ingr := range recipe.Ingredients {
 				fmt.Println( fmt.Sprintf("  - %s", *ingr.Name) )
 			}
+			
+			i += 1
 		}
 	}
 	

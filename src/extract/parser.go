@@ -70,6 +70,20 @@ func isIngredientToken(token html.Token) bool {
 	return false	
 }
 
+func isImageToken(token html.Token) bool {
+	if token.Data != "img" {
+		return false
+	}
+	
+	for _, attr := range token.Attr {
+		if attr.Key == "id" && attr.Val == "imgPhoto" {
+			return true
+		}
+	}
+	
+	return false
+}
+
 func _parser(tk *html.Tokenizer) proto.Recipe {
 	client, err := rpc.DialHTTP("tcp", *LABELER)
 	if err != nil {
@@ -113,6 +127,8 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 			} else if isIngredientToken(tok) {
 				tk.Next()
 				recipe.Ingredients = append( recipe.Ingredients, _getIngredient(tk.Token(), client) )
+			} else if isImageToken(tok) {
+				recipe.ImageUrls = append( recipe.ImageUrls, _getImage(tok) )
 			}
 		}
 		
@@ -168,4 +184,14 @@ func _getIngredient(token html.Token, client *rpc.Client) *proto.Ingredient {
 	}
 
 	return &ingr
+}
+
+func _getImage(token html.Token) string {
+	for _, attr := range token.Attr {
+		if attr.Key == "src" {
+			return attr.Val
+		}
+	}
+	
+	return ""
 }

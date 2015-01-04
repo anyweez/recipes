@@ -66,6 +66,10 @@ func writeRecipe(recipe proto.Recipe, out *os.File) {
 	c.Insert(recipe)
 }
 
+/**
+ * Checks the list of valid modes to determine whether the specified mode
+ * is recognized. Return true if so, false otherwise.
+ */
 func validMode(target string, valid []string) bool {
 	for _, val := range valid {
 		if target == val {
@@ -78,7 +82,6 @@ func validMode(target string, valid []string) bool {
 
 func main() {
 	flag.Parse()
-	
 	valid_modes := []string{ "ingredients", "recipes" }
 
 	// Check to ensure that a mode has been specified, and that that mode is valid.

@@ -82,7 +82,7 @@ func main() {
 	valid_modes := []string{ "ingredients", "recipes" }
 
 	// Check to ensure that a mode has been specified, and that that mode is valid.
-	if len(os.Args) < 2 && !validMode(os.Args[1], valid_modes) {
+	if len(os.Args) < 2 || !validMode(os.Args[1], valid_modes) {
 		log.Fatal( fmt.Sprintf("You must specify a valid mode: [%s]", strings.Join(valid_modes, ",")) )
 	}
 	mode := os.Args[1]

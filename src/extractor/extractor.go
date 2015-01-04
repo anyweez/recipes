@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"lib/config"
 	"log"
-	"io/ioutil"
 	proto "proto"
 	"os"
 	"strings"
@@ -66,33 +66,66 @@ func writeRecipe(recipe proto.Recipe, out *os.File) {
 	c.Insert(recipe)
 }
 
+func validMode(target string, valid []string) bool {
+	for _, val := range valid {
+		if target == val {
+			return true
+		}
+	}
+	
+	return false
+}
+
 func main() {
 	flag.Parse()
-
-	output, _ := os.Create(*OUTPUT_QUADS)
-	defer output.Close()
 	
-	/**
-	 * Read from disk.
-	 */
-	if len(*HTML_FILES) > 0 {
-		log.Println("Reading files from disk.")
+	valid_modes := []string{ "ingredients", "recipes" }
+
+	// Check to ensure that a mode has been specified, and that that mode is valid.
+	if len(os.Args) < 2 && !validMode(os.Args[1], valid_modes) {
+		log.Fatal( fmt.Sprintf("You must specify a valid mode: [%s]", strings.Join(valid_modes, ",")) )
+	}
+	mode := os.Args[1]
+	// Load the configuration.
+	conf := config.New("recipes.conf")
+
+	switch (mode) {
+		/**
+		 * Extracts ingredients from a Freebase triples file and updates MongoDB to include
+		 * all important (structured) information.
+		 */
+		case "ingredients":
+			// Extract ingredients from the Freebase database identified in the configuration.
+			ingr := ExtractIngredients(conf)
+			log.Println( fmt.Sprintf("%d ingredients read in.", len(ingr)) )
+			// Update MongoDB.
+			UpdateIngredients(conf, ingr)
+			break
+		/**
+		 * Parse raw HTML content and extract structured recipes. Both input and output are
+		 * expected to be in MongoDB.
+		 */
+		case "recipes":
+			output, _ := os.Create(*OUTPUT_QUADS)
+			defer output.Close()
+
+			log.Println("Reading from MongoDB instance.")
 		
-		files, err := ioutil.ReadDir(*HTML_FILES)
-		if err != nil {
-			log.Fatal("Error reading files:" + err.Error())
-		}
-	
-		for i, file := range files {
-			// If this file is an HTML file, 
-			if strings.HasSuffix(file.Name(), ".html") {
-				// Open the file and pass the data to parse()
-				data, err := ioutil.ReadFile(*HTML_FILES + "/" + file.Name())
-				if err != nil {
-					log.Fatal("Couldn't open file:" + err.Error())
-				}
-
-				recipe := parse(data)
+			session, err := mgo.Dial(conf.Mongo())
+			if err != nil {
+				log.Fatal("Cannot connect to Mongo instance: " + err.Error())
+			}
+		
+			defer session.Close()
+		
+			c := session.DB("recipes").C("scraper")
+		
+			var result PageRecord
+			iter := c.Find(nil).Iter()
+		
+			i := 0
+			for iter.Next(&result) {
+				recipe := parse(result.Content)
 				fmt.Println( fmt.Sprintf("%d. %s (%d min prep, %d min cook, %d min ready)", 
 					i+1, 
 					*recipe.Name, 
@@ -103,45 +136,11 @@ func main() {
 				for _, ingr := range recipe.Ingredients {
 					fmt.Println( fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")) )
 				}
-				
+			
 				writeRecipe(recipe, output)
+				i += 1
 			}
-		}
-	/**
-	 * Connect to Mongo instance.
-	 */
-	} else {
-		log.Println("Reading from MongoDB instance.")
-		
-		session, err := mgo.Dial(*MONGO_ADDR)
-		if err != nil {
-			log.Fatal("Cannot connect to Mongo instance: " + err.Error())
-		}
-		
-		defer session.Close()
-		
-		c := session.DB("recipes").C("scraper")
-		
-		var result PageRecord
-		iter := c.Find(nil).Iter()
-		
-		i := 0
-		for iter.Next(&result) {
-			recipe := parse(result.Content)
-			fmt.Println( fmt.Sprintf("%d. %s (%d min prep, %d min cook, %d min ready)", 
-				i+1, 
-				*recipe.Name, 
-				*recipe.Time.Prep,
-				*recipe.Time.Cook,
-				*recipe.Time.Ready) )
-			
-			for _, ingr := range recipe.Ingredients {
-				fmt.Println( fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")) )
-			}
-			
-			writeRecipe(recipe, output)
-			i += 1
-		}
+
+			break
 	}
-	
 }

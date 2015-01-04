@@ -17,14 +17,14 @@ func main() {
 	rpc.Register(retriever)
 	rpc.HandleHTTP()
 	log.Println("Launching retriever...")
-	
+
 	// Start listening!
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", *PORT))
-	
+
 	if err != nil {
 		log.Fatal("Couldn't start listening:" + err.Error())
 	}
-	
+
 	log.Println("Setup complete. Listening for RPC's on HTTP interface.")
 	http.Serve(l, nil)
 }

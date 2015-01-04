@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net/http"
 	"log"
+	"net/http"
 	"net/rpc"
-//	retrieve "retrieve"
+	//	retrieve "retrieve"
 	proto "proto"
-//	"strings"
+	//	"strings"
 )
 
 var INGREDIENTS = flag.String("ingredients", "m/0ggm5yy", "The ingredients we should search for.")
@@ -37,7 +37,7 @@ func main() {
 	flag.Parse()
 
 	http.HandleFunc("/api/ingredients", list_ingredients)
-//	http.HandleFunc("/api/recipe?contains", find_recipes)
+	//	http.HandleFunc("/api/recipe?contains", find_recipes)
 	// No-op handler for favicon.ico, since it'll otherwise generate an extra call to index.
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
@@ -50,21 +50,18 @@ func main() {
 	log.Println("Awaiting requests...")
 	log.Fatal("Couldn't listen on port 8088:", http.ListenAndServe(":8088", nil))
 
+	/*
 
+	   	var il retrieve.IngredientList
+	   	il.Ingredients = make([]string, 0)
 
+	   	il.Ingredients = append(il.Ingredients, strings.Split(*INGREDIENTS, ",")...)
+	   	rb := proto.RecipeBook{}
+	   //	rb.Recipes = make([]proto.Recipe, 0)
 
-/*
-	
-	var il retrieve.IngredientList
-	il.Ingredients = make([]string, 0)
-	
-	il.Ingredients = append(il.Ingredients, strings.Split(*INGREDIENTS, ",")...)
-	rb := proto.RecipeBook{}
-//	rb.Recipes = make([]proto.Recipe, 0)
-	
-	err = client.Call("Retriever.GetPartialRecipes", il, &rb) 
-	for i, recipe := range rb.Recipes {
-		fmt.Println( fmt.Sprintf("  %d. %s (%s)", i+1, *recipe.Name, *recipe.Id) )
-	}
-	* */
+	   	err = client.Call("Retriever.GetPartialRecipes", il, &rb)
+	   	for i, recipe := range rb.Recipes {
+	   		fmt.Println( fmt.Sprintf("  %d. %s (%s)", i+1, *recipe.Name, *recipe.Id) )
+	   	}
+	   	* */
 }

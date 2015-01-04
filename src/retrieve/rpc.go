@@ -7,6 +7,7 @@ import (
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 //	gproto "code.google.com/p/goprotobuf/proto"
+	"lib/ingredients"
 	"log"
 	"io/ioutil"
 	"net/http"
@@ -34,7 +35,10 @@ type GraphNode struct {
  */
 func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBook) error {
 	//session, _ := mgo.Dial(*MONGO)
-	session, _ := mgo.Dial("localhost:27017")
+	session, err := mgo.Dial("localhost:27017")
+	if err != nil {
+		log.Fatal("Couldn't connect to MongoDB instance.")
+	}
 	c := session.DB("recipes").C("parsed")
 	
 	log.Println("RPC REQUEST:" + strings.Join(il.Ingredients, ","))
@@ -45,7 +49,11 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 	for _, ingredient := range il.Ingredients {
 		// Body (Gremlin query)
 		data := []byte(fmt.Sprintf("g.Vertex(\"%s\").In(\"contains\").All()", ingredient))
-		resp, _ := http.Post( url, "text/plain", bytes.NewReader(data) )
+		resp, err := http.Post( url, "text/plain", bytes.NewReader(data) )
+
+		if err != nil {
+			log.Fatal("Couldn't update Cayley: " + err.Error())
+		}
 
 		defer resp.Body.Close()
 	
@@ -79,3 +87,10 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 }
 
 
+func (r *Retriever) GetIngredients(na string, ingr *[]proto.Ingredient) error {
+	for _, in := range ingredients.GetAll() {
+		*ingr = append(*ingr, in)
+	}
+	
+	return nil
+}

@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 	"net/rpc"
-	//	retrieve "retrieve"
+	retrieve "retrieve"
 	proto "proto"
-	//	"strings"
+	"strings"
 )
 
 var INGREDIENTS = flag.String("ingredients", "m/0ggm5yy", "The ingredients we should search for.")
@@ -33,11 +33,29 @@ func list_ingredients(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(data))
 }
 
+func find_recipes(w http.ResponseWriter, r *http.Request) {
+	client, err := rpc.DialHTTP("tcp", *RETRIEVER)
+	if err != nil {
+		log.Fatal("Couldn't connect to retriever: " + err.Error())
+	}
+
+   	var il retrieve.IngredientList
+   	il.Ingredients = make([]string, 0)
+   	il.Ingredients = append(il.Ingredients, strings.Split("m/0ggm5yy", ",")...)
+
+   	rb := proto.RecipeBook{}
+
+   	err = client.Call("Retriever.GetPartialRecipes", il, &rb)
+	data, _ := json.Marshal(rb)
+	
+	fmt.Fprintf(w, string(data))
+}
+
 func main() {
 	flag.Parse()
 
 	http.HandleFunc("/api/ingredients", list_ingredients)
-	//	http.HandleFunc("/api/recipe?contains", find_recipes)
+	http.HandleFunc("/api/recipes", find_recipes)
 	// No-op handler for favicon.ico, since it'll otherwise generate an extra call to index.
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 

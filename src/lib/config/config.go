@@ -19,7 +19,7 @@ func New(filename string) RecipesConfig {
 		MongoAddress: 				"historian",
 		MongoPort:    				27017,
 		MongoDatabase:				"recipes",
-		MongoRawCollection:			"scraped",
+		MongoRawCollection:			"scraper",
 		MongoRecipeCollection:		"recipes",
 		MongoIngredientCollection:	"ingredients",	
 		FreebaseDump:				"/mnt/vortex/corpora/freebase/freebase.all",

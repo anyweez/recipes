@@ -12,7 +12,7 @@ type RecipesConfig struct {
 
 func New(filename string) RecipesConfig {
 	return RecipesConfig{
-		MongoAddress: 	"127.0.0.1",
+		MongoAddress: 	"historian",
 		MongoPort:    	27017,
 		FreebaseDump:	"/mnt/vortex/corpora/freebase/freebase.all",
 	}

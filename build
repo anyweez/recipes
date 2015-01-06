@@ -13,5 +13,5 @@ mkdir -p src/proto
 protoc --plugin=bin/protoc-gen-go --go_out=src/ proto/*.proto
 
 # Build the extractor binary (parse HTML to structured recipe.
-go build extractor
+go build extract
 go build labeler

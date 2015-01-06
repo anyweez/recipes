@@ -135,7 +135,7 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
  * untouched if they're not present in the input slice.
  */
 func UpdateIngredients(conf config.RecipesConfig, ingredients []proto.Ingredient) error {
-	session, err := mgo.Dial( fmt.Sprintf("%s:%d", conf.MongoAddress, conf.MongoPort) )
+	session, err := mgo.Dial( conf.Mongo() )
 	if err != nil {
 		log.Fatal("Couldn't connect to MongoDB to update ingredient list: " + err.Error())
 	}

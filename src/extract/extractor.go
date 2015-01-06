@@ -50,7 +50,7 @@ func parse(data []byte) proto.Recipe {
  * Output the recipe to Cayley's HTTP endpoint. This function selects the
  * important fields from the Recipe data structure and posts them to Cayley.
  */
-func writeRecipe(recipe proto.Recipe, out *os.File) {
+func writeRecipe(recipe proto.Recipe, out *os.File, session *mgo.Session) {
 	out.WriteString(fmt.Sprintf("<%s> <named> \"%s\" .\n", *recipe.Id, *recipe.Name))
 	// Create records for each ingredient ID linking to the recipe.
 	for _, ingr := range recipe.Ingredients {
@@ -61,7 +61,6 @@ func writeRecipe(recipe proto.Recipe, out *os.File) {
 	}
 
 	// Record the structured data to Mongo.
-	session, _ := mgo.Dial(*MONGO_ADDR)
 	c := session.DB("recipes").C("parsed")
 	c.Insert(recipe)
 }
@@ -110,7 +109,11 @@ func main() {
 	 * expected to be in MongoDB.
 	 */
 	case "recipes":
-		output, _ := os.Create(*OUTPUT_QUADS)
+		output, err := os.Create(*OUTPUT_QUADS)
+		if err != nil {
+			log.Fatal("Couldn't open output file: " + *OUTPUT_QUADS)
+		}
+		
 		defer output.Close()
 
 		log.Println("Reading from MongoDB instance.")
@@ -149,7 +152,7 @@ func main() {
 				total_ingredients++
 			}
 
-			writeRecipe(recipe, output)
+			writeRecipe(recipe, output, session)
 			i += 1
 		}
 		

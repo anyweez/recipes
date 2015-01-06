@@ -27,7 +27,11 @@ message Ingredient {
 	//   SWISS is not a modifier for CHEESE
 	//   CHOPPED is a modifier for CELERY
 	enum Modifier {
-		CHOPPED  = 1;
+		CHOPPED  	= 	1;
+		GRATED		=	2;
+		SHREDDED	=	3;
+		SLICED		=	4;
+		PEELED		=	5;
 	}
 	
 	// When amount == 0, this means that the quantity is unspecified.
@@ -55,7 +59,7 @@ message Ingredient {
 // ./bin/recipes --mongodb=recipes --size=100 --path=output sample
 
 message Recipe {
-	optional uint32 id = 1;
+	optional string id = 1;
 	optional string name = 2;
 	optional Time time = 3;
 	optional float servings = 4;
@@ -79,7 +83,6 @@ message Recipe {
 message RecipeBook {
 	repeated Recipe recipes = 1;
 }
-
 
 /////////////////////////////////////////////
 /////////////////////////////////////////////

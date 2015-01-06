@@ -160,9 +160,8 @@ func main() {
 		
 		defer output.Close()
 
-		log.Println("Reading from MongoDB instance.")
-
 		session, err := mgo.Dial(conf.Mongo.ConnectionString())
+		log.Println("Reading from MongoDB instance.")
 		if err != nil {
 			log.Fatal("Cannot connect to Mongo instance: " + err.Error())
 		}

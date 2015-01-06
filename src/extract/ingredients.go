@@ -74,9 +74,9 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 	ingredients := make([]*proto.Ingredient, 0)
 	
 	// Step 1: open file w/ reader (note that it can be VERY big so it needs to be buffered)
-	fp, err := os.Open(conf.FreebaseDump)
+	fp, err := os.Open(conf.Freebase.DumpLocation)
 	if err != nil {
-		log.Fatal("Couldn't open Freebase sample file.")
+		log.Fatal("Couldn't open Freebase sample file at " + conf.Freebase.DumpLocation)
 	}
 	
 	scanner := bufio.NewScanner( bufio.NewReader(fp) )
@@ -135,7 +135,7 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
  * untouched if they're not present in the input slice.
  */
 func UpdateIngredients(conf config.RecipesConfig, ingredients []proto.Ingredient) error {
-	session, err := mgo.Dial( conf.Mongo() )
+	session, err := mgo.Dial( conf.Mongo.ConnectionString() )
 	if err != nil {
 		log.Fatal("Couldn't connect to MongoDB to update ingredient list: " + err.Error())
 	}

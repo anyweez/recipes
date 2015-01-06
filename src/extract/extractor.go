@@ -63,7 +63,7 @@ func writeRecipe(recipe proto.Recipe, out *os.File, session *mgo.Session, conf c
 	}
 
 	// Record the structured data to Mongo.
-	c := session.DB(conf.MongoDatabase).C(conf.MongoRecipeCollection)
+	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)
 	c.Insert(recipe)
 }
 
@@ -107,14 +107,14 @@ func main() {
 //		UpdateIngredients(conf, ingr)
 		break
 	case "sample":
-		session, err := mgo.Dial(conf.Mongo())
+		session, err := mgo.Dial(conf.Mongo.ConnectionString())
 		if err != nil {
 			log.Fatal("Cannot connect to Mongo instance: " + err.Error())
 		}
 
 		defer session.Close()
 
-		c := session.DB(conf.MongoDatabase).C(conf.MongoRawCollection)
+		c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RawCollection)
 		
 		numRecords, _ := c.Count()
 		var result PageRecord
@@ -161,14 +161,14 @@ func main() {
 
 		log.Println("Reading from MongoDB instance.")
 
-		session, err := mgo.Dial(conf.Mongo())
+		session, err := mgo.Dial(conf.Mongo.ConnectionString())
 		if err != nil {
 			log.Fatal("Cannot connect to Mongo instance: " + err.Error())
 		}
 
 		defer session.Close()
 
-		c := session.DB(conf.MongoDatabase).C(conf.MongoRawCollection)
+		c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RawCollection)
 
 		var result PageRecord
 		iter := c.Find(nil).Iter()

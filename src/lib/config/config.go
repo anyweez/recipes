@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	gcfg "code.google.com/p/gcfg"
+	"log"
 )
 
 type RecipesConfig struct {
@@ -26,11 +27,14 @@ type FreebaseConfig struct {
 func New(filename string) RecipesConfig {
 	c := RecipesConfig{}
 	// Read the configuration.
-	gcfg.ReadFileInto(&c, filename)
+	err := gcfg.ReadFileInto(&c, filename)
+	if err != nil {
+		log.Fatal("Error reading configuration file: " + err.Error())
+	}
 
 	return c
 }
 
-func (c *RecipesConfig) Mongo() string {
-	return fmt.Sprintf("%s:%d", c.MongoAddress, c.MongoPort)
+func (mc *MongoConfig) ConnectionString() string {
+	return fmt.Sprintf("%s:%d", mc.Address, mc.Port)
 }

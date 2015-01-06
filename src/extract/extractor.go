@@ -107,6 +107,7 @@ func main() {
 //		UpdateIngredients(conf, ingr)
 		break
 	case "sample":
+		log.Println(conf.Mongo.ConnectionString())
 		session, err := mgo.Dial(conf.Mongo.ConnectionString())
 		if err != nil {
 			log.Fatal("Cannot connect to Mongo instance: " + err.Error())

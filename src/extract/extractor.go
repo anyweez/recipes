@@ -102,7 +102,8 @@ func main() {
 		ingr := ExtractIngredients(conf)
 		log.Println(fmt.Sprintf("%d ingredients read in.", len(ingr)))
 		// Update MongoDB.
-		UpdateIngredients(conf, ingr)
+		log.Println("Writing temporarily disabled.")
+//		UpdateIngredients(conf, ingr)
 		break
 	/**
 	 * Parse raw HTML content and extract structured recipes. Both input and output are
@@ -127,6 +128,8 @@ func main() {
 		iter := c.Find(nil).Iter()
 
 		i := 0
+		found_ingredients := 0
+		total_ingredients := 0
 		for iter.Next(&result) {
 			recipe := parse(result.Content)
 			fmt.Println(fmt.Sprintf("%d. %s (%d min prep, %d min cook, %d min ready)",
@@ -138,10 +141,22 @@ func main() {
 
 			for _, ingr := range recipe.Ingredients {
 				fmt.Println(fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")))
+				
+				// Record counts for stats reporting later.
+				if len(ingr.Ingrids) > 0 {
+					found_ingredients++
+				}
+				total_ingredients++
 			}
 
 			writeRecipe(recipe, output)
 			i += 1
+		}
+		
+		if total_ingredients > 0 {
+			fmt.Println( fmt.Sprintf("Ingredient recall rate: %f", found_ingredients / total_ingredients) )
+		} else {
+			fmt.Println("No ingredients available in parsed recipes.")
 		}
 
 		break

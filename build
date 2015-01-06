@@ -8,10 +8,11 @@ go get -u golang.org/x/net/html
 go get -u code.google.com/p/goprotobuf/proto
 go get -u labix.org/v2/mgo
 go get -u labix.org/v2/mgo/bson
+go get -u code.google.com/p/gcfg
 
 mkdir -p src/proto
 protoc --plugin=bin/protoc-gen-go --go_out=src/ proto/*.proto
 
 # Build the extractor binary (parse HTML to structured recipe.
-go build extractor
+go build extract
 go build labeler

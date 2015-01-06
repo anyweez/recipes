@@ -13,7 +13,7 @@ type RecipesConfig struct {
 
 type MongoConfig struct {
 	Address					string
-	Port					string
+	Port					int
 	DatabaseName			string
 	RawCollection			string
 	RecipeCollection		string

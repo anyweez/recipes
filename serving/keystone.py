@@ -10,8 +10,8 @@ from pymongo import MongoClient
 ##
 ## Port range: (12050, 12099)
 
-import juggle.lib.juggle as juggle
-import proto.Recipes_pb2 as proto
+import juggle
+import recipes.proto.Recipes_pb2 as proto
 
 docdb = MongoClient('mongodb://localhost:27017/')
 docs = docdb.docs.recipes
@@ -36,7 +36,7 @@ def backend_response(response):
 
 def handle(request):
 	print 'initializing connection to backend'
-	backend = juggle.ServiceAPI('localhost', 12100)
+	backend = juggle.ServiceAPI('10.1.1.55', 12100)
 	backend.encoder(backend_request)
 	backend.decoder(backend_response)
 	

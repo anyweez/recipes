@@ -4,10 +4,12 @@
 ## https://docs.google.com/document/d/15OcHFpliGclzjt9soDq2NiaBUfelvMyKt-1CzhT4hjU/edit?usp=sharing
 
 import web, json, time, urllib
-import juggle.lib.juggle as juggle
-import proto.Recipes_pb2 as proto
+import juggle
+import recipes.proto.Recipes_pb2 as proto
 
 from protobuf_to_dict import protobuf_to_dict
+
+BASE_DIR = '/home/pi/git/recipes/'
 
 urls = (
 	'/api/recipes', 'RecipeSearch',
@@ -85,7 +87,7 @@ class RecipeSearch(object):
 
 class Index(object):
 	def GET(self):
-		with open('web/index.html') as fp:
+		with open(BASE_DIR + 'web/index.html') as fp:
 			return fp.read()
 
 class Ingredients(object):

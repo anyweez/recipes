@@ -57,9 +57,9 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
  * to be skipped.
  */
 func isKeeper(subj, pred, obj string) bool {
-	// If notable_type is /food/food
+	// If notable_type is /food/food (expecting 8,615 cases at time of writing
+	// according to http://www.freebase.com/food?schema=).
 	if (pred == "/common/topic/notable_types" && obj == "/m/05yxcqj") {
-//	if (pred == "/common/topic/notable_types" && obj == "/m/01xryvm") {
 		return true
 	}
 
@@ -91,6 +91,8 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 
 	current := &proto.Ingredient{}
 	current_mid := ""
+	line_count := 0
+	log.Println("Starting scan...")
 	for scanner.Scan() {
 		subj, pred, obj := split(scanner.Text())
 		
@@ -123,8 +125,10 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 		
 		// Store the field on the current object
 		store(im, subj, pred, obj)		
+		line_count += 1
 	}
 
+	log.Println( fmt.Sprintf("%d lines read.", line_count) )
 	return ingredients
 }
 

@@ -121,6 +121,7 @@ func main() {
 		var result PageRecord
 		found_ingredients := 0.0
 		total_ingredients := 0.0
+		sample_misses := make([]string, 0)
 		
 		for i := 0; i < *SAMPLE_SIZE; i++ {
 			fmt.Print( fmt.Sprintf("Evaluating sample... [%d / %d]\r", i+1, *SAMPLE_SIZE) )
@@ -135,6 +136,10 @@ func main() {
 				// Record counts for stats reporting later.
 				if len(ingr.Ingrids) > 0 {
 					found_ingredients++
+				} else {
+					if rand.Int() % 100 > 10 {
+						sample_misses = append(sample_misses, *ingr.Name)
+					}
 				}
 				total_ingredients++
 			}

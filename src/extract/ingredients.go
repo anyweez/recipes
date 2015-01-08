@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"errors"
 	"labix.org/v2/mgo"
 	"lib/config"	
 	"log"
@@ -16,23 +17,28 @@ import (
  * This function takes a line of a RDF file and breaks it up into pieces.
  * It also strips quotation marks, removes angled brackets, etc.
  */
-func split(line string) (string, string, string) {
+func split(line string, lineno int) (string, string, string, error) {
 	parts := strings.SplitN(line, " ", 3)
 
 	// Cut the last two characters off of the final part (" .")
-	return convertFreebaseId(parts[0]), convertFreebaseId(parts[1]), convertFreebaseId(parts[2][0:len(parts[2])-2])
+	if len(parts) > 2 && len(parts[2])-2 > 0 {
+		return convertFreebaseId(parts[0]), convertFreebaseId(parts[1]), convertFreebaseId(parts[2][0:len(parts[2])-2]), nil
+	} else {
+		return "", "", "", errors.New("Invalid string in Freebase: " + line)
+	}
 }
 
 func convertFreebaseId(uri string) string{
-     if strings.HasPrefix(uri, "<") && strings.HasSuffix(uri, ">") {
-        var id = uri[1 : len(uri)-1]
-        id = strings.Replace(id, "http://rdf.freebase.com/ns", "", -1)
-        id = strings.Replace(id, ".", "/", -1)
-        return id
-     }
+	uri = strings.Replace(uri, "\"", "", -1) 
+    if strings.HasPrefix(uri, "<") && strings.HasSuffix(uri, ">") {
+       var id = uri[1 : len(uri)-1]
+       id = strings.Replace(id, "http://rdf.freebase.com/ns", "", -1)
+       id = strings.Replace(id, ".", "/", -1)
+       return id
+    }
      
-     return uri
- }
+    return uri
+}
 
 func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj string) bool {
 	// This switch statement identifies which predicates should be stored,
@@ -40,9 +46,13 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
 	switch (pred) {
 		case "/type/object/name":
 			ingredient, _ := mapping[subj]
-			ingredient.Name = gproto.String(obj)
-			
-			return true
+
+			// Only store the name if it's in English.
+			if strings.HasSuffix(obj, "@en") {
+				ingredient.Name = gproto.String(obj[0:len(obj)-3])
+				return true
+			}
+			return false
 			break
 		default:
 			break
@@ -59,6 +69,9 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
 func isKeeper(subj, pred, obj string) bool {
 	// If notable_type is /food/food (expecting 8,615 cases at time of writing
 	// according to http://www.freebase.com/food?schema=).
+	// TODO: add 	/m/03yw5hv (/food/ingredient)
+	//				/m/03yw5sq (/food/dish)
+	//				/m/01xs0vd (/food/cheese) 
 	if (pred == "/common/topic/notable_types" && obj == "/m/05yxcqj") {
 		return true
 	}
@@ -79,7 +92,7 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 		log.Fatal("Couldn't open Freebase sample file at " + conf.Freebase.DumpLocation)
 	}
 	
-	scanner := bufio.NewScanner( bufio.NewReader(fp) )
+	reader := bufio.NewReader(fp)
 	
 	// Step 2: create two maps, one that keeps track of ingredient data (keyed by mid)
 	//   and the other that keeps track of whether a given ingredient is a "keeper."
@@ -93,8 +106,14 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 	current_mid := ""
 	line_count := 0
 	log.Println("Starting scan...")
-	for scanner.Scan() {
-		subj, pred, obj := split(scanner.Text())
+
+	line, _, lerr := reader.ReadLine()
+	for lerr == nil {
+		subj, pred, obj, err := split(string(line), line_count)
+		
+		if err != nil {
+			log.Println(err.Error())
+		}
 		
 		// If this is a new mid, either get rid of or store current.
 		if subj != current_mid {
@@ -120,14 +139,16 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 		// Check whether this record indicates that this is a record to keep.
 		if isKeeper(subj, pred, obj) {
 			iv[subj] = true
-			log.Println( fmt.Sprintf("%s is a keeper!", subj) )
 		}
 		
 		// Store the field on the current object
 		store(im, subj, pred, obj)		
+
 		line_count += 1
+		line, _, lerr = reader.ReadLine()
 	}
 
+	// Expected 2,117,736,192 at time of writing.
 	log.Println( fmt.Sprintf("%d lines read.", line_count) )
 	return ingredients
 }
@@ -138,12 +159,12 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
  * records if they don't exist, updates them if they do, and leaves them
  * untouched if they're not present in the input slice.
  */
-func UpdateIngredients(conf config.RecipesConfig, ingredients []proto.Ingredient) error {
+func UpdateIngredients(conf config.RecipesConfig, ingredients []*proto.Ingredient) error {
 	session, err := mgo.Dial( conf.Mongo.ConnectionString() )
 	if err != nil {
 		log.Fatal("Couldn't connect to MongoDB to update ingredient list: " + err.Error())
 	}
-	c := session.DB("recipes").C("ingredients")
+	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.IngredientCollection)
 
 	for _, ingr := range ingredients {
 		c.Insert(ingr)

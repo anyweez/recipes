@@ -69,10 +69,14 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
 func isKeeper(subj, pred, obj string) bool {
 	// If notable_type is /food/food (expecting 8,615 cases at time of writing
 	// according to http://www.freebase.com/food?schema=).
-	// TODO: add 	/m/03yw5hv (/food/ingredient)
-	//				/m/03yw5sq (/food/dish)
-	//				/m/01xs0vd (/food/cheese) 
-	if (pred == "/common/topic/notable_types" && obj == "/m/05yxcqj") {
+	// 1,793 appear to be extracted; hypothesis is that some don't have English names.
+	if 	(pred == "/common/topic/notable_types" && obj == "/m/05yxcqj") ||
+		// This is /food/ingredient.
+		(pred == "/common/topic/notable_types" && obj == "/m/03yw5hv") ||
+		// This is /food/cheese.
+		(pred == "/common/topic/notable_types" && obj == "/m/01xs0vd") ||
+		// This is /food/dish.
+		(pred == "/common/topic/notable_types" && obj == "/m/03yw5sq") {
 		return true
 	}
 

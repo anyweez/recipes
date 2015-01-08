@@ -103,8 +103,7 @@ func main() {
 		ingr := ExtractIngredients(conf)
 		log.Println(fmt.Sprintf("%d ingredients read in.", len(ingr)))
 		// Update MongoDB.
-		log.Println("Writing temporarily disabled.")
-//		UpdateIngredients(conf, ingr)
+		UpdateIngredients(conf, ingr)
 		break
 	case "sample":
 		session, err := mgo.Dial(conf.Mongo.ConnectionString())

@@ -1,7 +1,7 @@
 import splitter
 import sys, random
 
-NUM_TRIALS = 20
+NUM_TRIALS = 100
 
 def compare(str1, str2):
 	str1 = str1.strip().replace(' ', '')
@@ -34,8 +34,8 @@ for i in xrange(NUM_TRIALS):
 
 		if compare(test[0], first) and compare(test[1], second):
 			successes += 1
-		else:
-			print '%s | %s' % (first, second)
+#		else:
+#			print '%s | %s' % (first, second)
 
 		attempts += 1
 

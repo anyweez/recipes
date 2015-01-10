@@ -31,13 +31,14 @@ class RecipeSearch(object):
 	def GET(self):
 		params = web.input()
 		
-		if params.contains is not None:
+		try:
 			contains = urllib.unquote(params.contains).decode('utf-8')
 			ingredient_list = contains.split(',')
 
 			return self.find_recipes(ingredient_list)
-		else:
-			return 'Not supported yet!'
+		except AttributeError:
+			# General recipe search.
+			return json.dumps( {'error': 'Not supported yet!'} )
 
 	# This method identifies recipes that use the ingredients specified
 	# in 'ingredient_list' and returns information about those recipes.

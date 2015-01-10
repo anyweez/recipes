@@ -90,6 +90,7 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 	if err != nil {
 		log.Fatal("Couldn't connect to labeler at " + *LABELER)
 	}
+	defer client.Close()
 
 	recipe := proto.Recipe{}
 	recipe.Id = gproto.String(fmt.Sprintf("/r/%d", nextId))

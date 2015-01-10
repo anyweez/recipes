@@ -1,5 +1,0 @@
-#!/bin/bash
-
-python pipeline/client.ingredients.py $1
-#python pipeline/client.ingredients.py /mnt/corpora/corpora/recipes/output1000 
-#python pipeline/client.ingredients.py test/

@@ -1,0 +1,103 @@
+
+message Ingredient {
+	// QuantityTypes should have a well-defined definition (a "box" of
+	// something is not well-defined). CUSTOM is the exception, and is
+	// reserved for types that are not well-defined.
+	enum QuantityType {
+		CUSTOM 		= 1;
+		CUP  		= 2;
+		TABLESPOON	= 3;
+		TEASPOON	= 4;
+		QUART		= 5;
+		GALLON		= 6;
+		POUND		= 7;
+		PINT		= 8;
+	}
+
+	message Quantity {
+		optional float original_amount = 1;
+		optional uint32 normalized_amount = 2;
+
+		optional string original_unit_string = 3;
+        optional QuantityType original_type = 4;
+	}
+	
+	// Modifiers are used for describing "post processing" steps for an
+	// ingredient, but do not describe the ingredient itself.
+	//   SWISS is not a modifier for CHEESE
+	//   CHOPPED is a modifier for CELERY
+	enum Modifier {
+		CHOPPED  	= 	1;
+		GRATED		=	2;
+		SHREDDED	=	3;
+		SLICED		=	4;
+		PEELED		=	5;
+	}
+	
+	// When amount == 0, this means that the quantity is unspecified.
+	// Ex: [confectioners' sugar for dusting]
+	// See common.get_num() for more details.
+	optional double amount = 1;
+//	optional QuantityType quantity = 2;
+	optional Quantity quantity = 2;
+	
+	// Only used for UNKNOWN QuantityTypes. Used for things that can't
+	// reliably be broken down into units, like "packets".
+	optional string quantity_type = 3;
+	
+	// How the name should be presented.
+	optional string name = 4;
+	
+	// Entities identified in the name.
+	repeated string ingrids = 5;
+	
+	// Modifiers to apply to the ingredient.
+	repeated Modifier modifiers = 6;
+}
+
+// ./bin/recipes --mongodb=recipes --expvar scrape    // localhost/debug/vars and look recipes
+// ./bin/recipes --mongodb=recipes --size=100 --path=output sample
+
+message Recipe {
+	optional string id = 1;
+	optional string name = 2;
+	optional Time time = 3;
+	optional float servings = 4;
+	repeated Ingredient ingredients = 5;
+
+	// Various time measurements, in minutes.
+	message Time {
+		optional uint32 prep = 1;
+		optional uint32 cook = 2;
+		optional uint32 ready = 3;
+	}
+	
+	// Absolute URL's to images of the finished product.
+	repeated string image_urls = 6;
+	// The URL that the resource originally lived at.
+	optional string source_url = 7;
+}
+
+// A container for holding a set of recipes, primarily for writing to
+// disk.
+message RecipeBook {
+	repeated Recipe recipes = 1;
+}
+
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+
+// Some serving protos
+
+message RecipeRequest {
+	repeated string ingrids = 1;
+}
+
+message RecipeResponse {
+	optional string test = 1;
+	repeated string recipe_ids = 2;
+
+	repeated Recipe recipes = 3;
+	// Duration in milliseconds
+	optional float duration = 4;
+}

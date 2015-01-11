@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"lib/ingredients"
 	"log"
+	"math/rand"
 	"net/http"
 	proto "proto"
 	"strings"
@@ -89,6 +90,31 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 func (r *Retriever) GetIngredients(na string, ingr *[]proto.Ingredient) error {
 	for _, in := range ingredients.GetAll() {
 		*ingr = append(*ingr, in)
+	}
+
+	return nil
+}
+
+func (r *Retriever) GetBestRecipes(seed int64, recipes *[]proto.Recipe) error {
+	// Seed the random number generator
+	rand.Seed(seed)
+
+	// Connect to Mongo
+	session, err := mgo.Dial("10.1.1.81:27017")
+	if err != nil {
+		log.Fatal("Couldn't connect to MongoDB instance.")
+	}
+	c := session.DB("recipes").C("recipes")
+
+	numRecords, _ := c.Count()
+	// Fetch ten different recipes and send 'em back.
+	for i := 0; i < 10; i++ {
+		r := proto.Recipe{}
+		
+		skip := rand.Int() % numRecords
+		c.Find(nil).Skip(skip).One(&r)
+
+		*recipes = append(*recipes, r)
 	}
 
 	return nil

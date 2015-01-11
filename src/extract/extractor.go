@@ -215,8 +215,6 @@ func main() {
 
 			writeRecipe(recipe, output, session, conf)
 			i += 1
-			
-			return
 		}
 		
 		break

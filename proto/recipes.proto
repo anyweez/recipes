@@ -53,6 +53,9 @@ message Ingredient {
 	
 	// Modifiers to apply to the ingredient.
 	repeated Modifier modifiers = 6;
+	
+	// The original string used to describe the quantity of the ingredient.
+	optional string quantity_string = 7;
 }
 
 // ./bin/recipes --mongodb=recipes --expvar scrape    // localhost/debug/vars and look recipes

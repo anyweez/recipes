@@ -46,12 +46,15 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
 	switch (pred) {
 		case "/type/object/name":
 			ingredient, _ := mapping[subj]
-
-			// Only store the name if it's in English.
-			if strings.HasSuffix(obj, "@en") {
-				ingredient.Name = gproto.String(obj[0:len(obj)-3])
+			parts := strings.Split(obj, "@")
+			
+			// Save the name if there's no language tag or if the language
+			// tag indicates English.
+			if len(parts) == 1 || parts[1] == "en" {
+				ingredient.Name = gproto.String(parts[0])
 				return true
 			}
+			
 			return false
 			break
 		default:
@@ -96,7 +99,8 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 		log.Fatal("Couldn't open Freebase sample file at " + conf.Freebase.DumpLocation)
 	}
 	
-	reader := bufio.NewReader(fp)
+	// TESTING: if we make the buffer large do we get any extra 
+	reader := bufio.NewReaderSize(fp, 1000000)
 	
 	// Step 2: create two maps, one that keeps track of ingredient data (keyed by mid)
 	//   and the other that keeps track of whether a given ingredient is a "keeper."
@@ -111,7 +115,10 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 	line_count := 0
 	log.Println("Starting scan...")
 
-	line, _, lerr := reader.ReadLine()
+	line, ovflw, lerr := reader.ReadLine()
+	if ovflw {
+		log.Println("Overflowed read buffer")
+	}
 	for lerr == nil {
 		subj, pred, obj, err := split(string(line), line_count)
 		
@@ -130,6 +137,9 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 				ingredients = append(ingredients, im[current_mid])
 			// Or forget that this key ever existed.
 			} else {
+				if keeper {
+					log.Println("getting rid of a keeper because of a missing name")
+				}
 				delete(iv, current_mid)
 				delete(im, current_mid)
 			}
@@ -149,7 +159,10 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 		store(im, subj, pred, obj)		
 
 		line_count += 1
-		line, _, lerr = reader.ReadLine()
+		line, ovflw, lerr = reader.ReadLine()
+		if ovflw {
+			log.Println("Overflowed read buffer")
+		}	
 	}
 
 	// Expected 2,117,736,192 at time of writing.

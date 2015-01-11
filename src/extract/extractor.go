@@ -206,11 +206,17 @@ func main() {
 				*recipe.Time.Ready))
 
 			for _, ingr := range recipe.Ingredients {
-				fmt.Println(fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")))
+				if len(*ingr.QuantityString) > 0 {
+					fmt.Println(fmt.Sprintf("  - %s %s (%s)", *ingr.QuantityString, *ingr.Name, strings.Join(ingr.Ingrids, ", ")))
+				} else {
+					fmt.Println(fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")))	
+				}
 			}	
 
 			writeRecipe(recipe, output, session, conf)
 			i += 1
+			
+			return
 		}
 		
 		break

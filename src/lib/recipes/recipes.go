@@ -1,7 +1,7 @@
 package recipes
 
 import (
-	"lib/config"
+	"labix.org/v2/mgo/bson"
 )
 
 type PageRecord struct {
@@ -12,6 +12,7 @@ type PageRecord struct {
 	Content []byte
 }
 
+/*
 func GetAll() []proto.Recipes {
 
 }
@@ -19,3 +20,4 @@ func GetAll() []proto.Recipes {
 func GetAllRaw(conf config.RecipesConfig) [][]byte {
 
 }
+*/

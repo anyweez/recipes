@@ -52,7 +52,8 @@ func loadMapping(filename string) {
 		if len(pair) != 2 {
 			log.Println("WARNING: Invalid ingredient mapping file; incomplete line doesn't include full pair:" + record)
 		} else {
-			IngredientMap[strings.ToLower(pair[1])] = pair[0]
+			cleaned := strings.TrimSpace( strings.ToLower(pair[1]) )
+			IngredientMap[cleaned] = pair[0]
 		}
 	}
 }

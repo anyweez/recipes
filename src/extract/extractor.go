@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	gproto "code.google.com/p/goprotobuf/proto"
 	html "golang.org/x/net/html"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"lib/config"
+	"lib/recipes"
 	"log"
 	"os"
 	proto "proto"
 	"math/rand"
 	"strings"
+	"time"
 )
 
 var HTML_FILES = flag.String("files", "", "The HTML file that should be parsed.")
@@ -110,6 +113,21 @@ func main() {
 		if err != nil {
 			log.Fatal("Cannot connect to Mongo instance: " + err.Error())
 		}
+		defer session.Close()
+
+		c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)
+		numRecords, _ := c.Count()
+		rand.Seed(time.Now().Unix())
+		skip := rand.Int() % numRecords
+		result := proto.Recipe{}
+		
+		c.Find(nil).Skip(skip).One(&result)
+		recipes.DebugPrint(result)
+/*
+		session, err := mgo.Dial(conf.Mongo.ConnectionString())
+		if err != nil {
+			log.Fatal("Cannot connect to Mongo instance: " + err.Error())
+		}
 
 		defer session.Close()
 
@@ -148,7 +166,7 @@ func main() {
 		} else {
 			fmt.Println("No ingredients available in parsed recipes.")
 		}
-
+*/
 		break
 	
 	/**
@@ -163,12 +181,12 @@ func main() {
 		
 		defer output.Close()
 
+		log.Println("Connecting to MongoDB instance at " + conf.Mongo.ConnectionString())
 		session, err := mgo.Dial(conf.Mongo.ConnectionString())
-		log.Println("Reading from MongoDB instance.")
+		log.Println("Reading from MongoDB...")
 		if err != nil {
 			log.Fatal("Cannot connect to Mongo instance: " + err.Error())
 		}
-
 		defer session.Close()
 
 		c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RawCollection)
@@ -179,6 +197,7 @@ func main() {
 		i := 0
 		for iter.Next(&result) {
 			recipe := parse(result.Content)
+			recipe.SourceUrl = gproto.String( string(result.Page) )
 			fmt.Println(fmt.Sprintf("%d. %s (%d min prep, %d min cook, %d min ready)",
 				i+1,
 				*recipe.Name,
@@ -187,7 +206,11 @@ func main() {
 				*recipe.Time.Ready))
 
 			for _, ingr := range recipe.Ingredients {
-				fmt.Println(fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")))
+				if len(*ingr.QuantityString) > 0 {
+					fmt.Println(fmt.Sprintf("  - %s %s (%s)", *ingr.QuantityString, *ingr.Name, strings.Join(ingr.Ingrids, ", ")))
+				} else {
+					fmt.Println(fmt.Sprintf("  - %s (%s)", *ingr.Name, strings.Join(ingr.Ingrids, ", ")))	
+				}
 			}	
 
 			writeRecipe(recipe, output, session, conf)

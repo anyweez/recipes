@@ -63,7 +63,7 @@ func isReadyTimeToken(token html.Token) bool {
 
 func isIngredientToken(token html.Token) bool {
 	for _, attr := range token.Attr {
-		if attr.Key == "class" && attr.Val == "ingredient-name" {
+		if attr.Key == "itemprop" && attr.Val == "ingredients" {
 			return true
 		}
 	}
@@ -72,10 +72,6 @@ func isIngredientToken(token html.Token) bool {
 }
 
 func isImageToken(token html.Token) bool {
-	if token.Data != "img" {
-		return false
-	}
-
 	for _, attr := range token.Attr {
 		if attr.Key == "id" && attr.Val == "imgPhoto" {
 			return true
@@ -107,7 +103,8 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 		tok := tk.Token()
 
 		// Parser
-		if tok.Type == html.StartTagToken {
+		if tok.Type == html.StartTagToken || tok.Type == html.SelfClosingTagToken {
+			
 			/**
 			 * Title tokens contain the title of the recipe. The tokken
 			 * after the title token is what contains the title itself.
@@ -115,11 +112,11 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 			if isTitleToken(tok) {
 				tk.Next()
 				recipe.Name = gproto.String(_getTitle(tk.Token()))
-				/**
-				 * The PrepTimeToken contains the number of hours and minutes
-				 * required to prepare the dish. It is extracted from the <time>
-				 * element.
-				 */
+			/**
+			 * The PrepTimeToken contains the number of hours and minutes
+			 * required to prepare the dish. It is extracted from the <time>
+			 * element.
+			 */
 			} else if isPrepTimeToken(tok) {
 				recipe.Time.Prep = gproto.Uint32(_getTime(tok))
 			} else if isCookTimeToken(tok) {
@@ -127,8 +124,33 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 			} else if isReadyTimeToken(tok) {
 				recipe.Time.Ready = gproto.Uint32(_getTime(tok))
 			} else if isIngredientToken(tok) {
-				tk.Next()
-				recipe.Ingredients = append(recipe.Ingredients, _getIngredient(tk.Token(), client))
+				hasQuantity := true
+				quantity := ""
+				ingrName := ""
+				
+				// Parse out the ingredient name and the quantity.
+				for len(ingrName) == 0 && (hasQuantity || len(quantity) == 0) {
+					tk.Next()					
+					tok = tk.Token()
+					for _, attr := range tok.Attr {
+						if attr.Key == "class" && attr.Val == "ingredient-amount" {
+							tk.Next()
+							quantity = tk.Token().String()
+						}
+						
+						if attr.Key == "class" && attr.Val == "ingredient-name" {
+							tk.Next()
+							ingrName = tk.Token().String()
+							
+							// If we get the ingredient name with no quantity value,
+							// mark that the quality value won't be coming.
+							if len(quantity) == 0 {
+								hasQuantity = false
+							}
+						}
+					}
+				}
+				recipe.Ingredients = append(recipe.Ingredients, _getIngredient(ingrName, quantity, client))
 			} else if isImageToken(tok) {
 				recipe.ImageUrls = append(recipe.ImageUrls, _getImage(tok))
 			}
@@ -174,16 +196,17 @@ func _getTime(token html.Token) uint32 {
 	return 0
 }
 
-func _getIngredient(token html.Token, client *rpc.Client) *proto.Ingredient {
+func _getIngredient(in string, quantity string, client *rpc.Client) *proto.Ingredient {
 	ingr := proto.Ingredient{}
 
 	err := client.Call("Labeler.GetIngredient", labeler.LabelerArgs{
-		IngredientString: html.UnescapeString(token.String()),
+		IngredientString: html.UnescapeString(in),
 	}, &ingr)
 
 	if err != nil {
 		log.Fatal("Error parsing ingredient:" + err.Error())
 	}
+	ingr.QuantityString = gproto.String(quantity)
 
 	return &ingr
 }

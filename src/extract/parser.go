@@ -88,8 +88,9 @@ func isImageToken(token html.Token) bool {
 func _parser(tk *html.Tokenizer) proto.Recipe {
 	client, err := rpc.DialHTTP("tcp", *LABELER)
 	if err != nil {
-		log.Fatal("Couldn't connect to labeler at " + *LABELER)
+		log.Fatal( fmt.Sprintf("Couldn't connect to labeler at %s [%s]", *LABELER, err.Error()) )
 	}
+	defer client.Close()
 
 	recipe := proto.Recipe{}
 	recipe.Id = gproto.String(fmt.Sprintf("/r/%d", nextId))

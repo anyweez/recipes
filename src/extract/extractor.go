@@ -86,7 +86,7 @@ func validMode(target string, valid []string) bool {
 
 func main() {
 	flag.Parse()
-	valid_modes := []string{"ingredients", "sample", "recipes"}
+	valid_modes := []string{"ingredients", "sample", "recipes", "coverage"}
 
 	// Check to ensure that a mode has been specified, and that that mode is valid.
 	if len(os.Args) < 2 || !validMode(os.Args[1], valid_modes) {
@@ -123,52 +123,40 @@ func main() {
 		
 		c.Find(nil).Skip(skip).One(&result)
 		recipes.DebugPrint(result)
-/*
+		break
+	/**
+	 * Reads all of parsed recipes and counts the split between labeled
+	 * and unlabeled ingredients.
+	 */
+	case "coverage":
+		log.Println("Connecting to MongoDB instance at " + conf.Mongo.ConnectionString())
 		session, err := mgo.Dial(conf.Mongo.ConnectionString())
 		if err != nil {
-			log.Fatal("Cannot connect to Mongo instance: " + err.Error())
+			log.Fatal("Couldn't connect to MongoDB instance: " + err.Error())
 		}
-
-		defer session.Close()
-
-		c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RawCollection)
+		c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)
 		
-		numRecords, _ := c.Count()
-		var result PageRecord
-		found_ingredients := 0.0
-		total_ingredients := 0.0
-		sample_misses := make([]string, 0)
+		iter := c.Find(nil).Iter()
+		recipe := proto.Recipe{}
 		
-		for i := 0; i < *SAMPLE_SIZE; i++ {
-			fmt.Print( fmt.Sprintf("Evaluating sample... [%d / %d]\r", i+1, *SAMPLE_SIZE) )
-			// Retrieve a random record.
-			skipCount := rand.Int() % (numRecords - 1)
-			c.Find(nil).Skip(skipCount).One(&result)
-			
-			// Parse the recipe and count how many ingredients were identified.
-			recipe := parse(result.Content)
-			
-			for _, ingr := range recipe.Ingredients {
-				// Record counts for stats reporting later.
-				if len(ingr.Ingrids) > 0 {
-					found_ingredients++
-				} else {
-					if rand.Int() % 100 > 10 {
-						sample_misses = append(sample_misses, *ingr.Name)
-					}
+		hits := 0
+		total := 0
+		for iter.Next(&recipe) {
+			for _, in := range recipe.Ingredients {
+				if len(in.Ingrids) > 0 {
+					hits++
 				}
-				total_ingredients++
+				
+				total++
 			}
 		}
-		
-		if total_ingredients > 0 {
-			fmt.Println( fmt.Sprintf("Ingredient recall rate: %f", found_ingredients / total_ingredients) )
-		} else {
-			fmt.Println("No ingredients available in parsed recipes.")
-		}
-*/
-		break
 	
+		if total > 0 {
+			fmt.Println( fmt.Sprintf("Ingredient label coverage: %.3f", float32(hits) / float32(total)) )
+		} else {
+			fmt.Println( fmt.Sprintf("WARN: no recipes found") )			
+		}
+		break
 	/**
 	 * Parse raw HTML content and extract structured recipes. Both input and output are
 	 * expected to be in MongoDB.

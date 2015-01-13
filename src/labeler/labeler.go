@@ -9,12 +9,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"labix.org/v2/mgo"
 	"lib/config"
 	"log"
 	"net"
 	"net/http"
 	"net/rpc"
+	proto "proto"
 	"strings"
 )
 
@@ -40,10 +41,13 @@ func (l *LabelerArgs) String() string {
  *
  * The mapping is case-insensitive.
  */
-func loadMapping(conf config.RecipeConfig) {
+func loadMapping(conf config.RecipesConfig) {
 	IngredientMap = make(map[string]string)
 
 	session, err := mgo.Dial(conf.Mongo.ConnectionString())
+	if err != nil {
+		log.Fatal("Can't connect to Mongo at " + conf.Mongo.ConnectionString())
+	}
 	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.IngredientCollection)
 
 	iter := c.Find(nil).Iter()
@@ -51,8 +55,8 @@ func loadMapping(conf config.RecipeConfig) {
 
 	// Create the name=>mid mapping.
 	for iter.Next(&ingredient) {
-		cleanedName := strings.TrimSpace( strings.ToLower(ingredient.Name) )
-		IngredientMap[cleanedName] = ingrid
+		cleanedName := strings.TrimSpace( strings.ToLower(*ingredient.Name) )
+		IngredientMap[cleanedName] = ingredient.Ingrids[0]
 	}
 }
 

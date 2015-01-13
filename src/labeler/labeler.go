@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"lib/config"
 	"log"
 	"net"
 	"net/http"
@@ -33,28 +34,25 @@ func (l *LabelerArgs) String() string {
 }
 
 /**
- * This function reads in tuples for all ingredients that should be identified
- * by the labeler. It should contain one tuple per ingredient that identifies
- * the mid and the labeled name of the ingredient, i.e.
- *
- * 		/m/18df53	name	Onion
+ * This function reads in and inverts ingredients stored in MongoDB (extracted
+ * with `extract ingredients` command). The mapping is then used for exact
+ * string matches via the labeler rpc's.
  *
  * The mapping is case-insensitive.
  */
-func loadMapping(filename string) {
+func loadMapping(conf config.RecipeConfig) {
 	IngredientMap = make(map[string]string)
 
-	data, _ := ioutil.ReadFile(filename)
-	records := strings.Split(string(data), "\n")
+	session, err := mgo.Dial(conf.Mongo.ConnectionString())
+	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.IngredientCollection)
 
-	for _, record := range records {
-		pair := strings.Split(record, "\t")
-		if len(pair) != 2 {
-			log.Println("WARNING: Invalid ingredient mapping file; incomplete line doesn't include full pair:" + record)
-		} else {
-			cleaned := strings.TrimSpace( strings.ToLower(pair[1]) )
-			IngredientMap[cleaned] = pair[0]
-		}
+	iter := c.Find(nil).Iter()
+	ingredient := proto.Ingredient{}
+
+	// Create the name=>mid mapping.
+	for iter.Next(&ingredient) {
+		cleanedName := strings.TrimSpace( strings.ToLower(ingredient.Name) )
+		IngredientMap[cleanedName] = ingrid
 	}
 }
 
@@ -63,7 +61,8 @@ func main() {
 
 	// Load the ingredient map.
 	log.Println("Loading ingredient map...")
-	loadMapping(*INGREDIENT_DB)
+	conf := config.New("recipes.conf")
+	loadMapping(conf)
 	log.Println(fmt.Sprintf("Loaded %d ingredients.", len(IngredientMap)))
 
 	// Set up the RPC HTTP interface

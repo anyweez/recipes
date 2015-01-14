@@ -9,6 +9,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gedex/inflector"
 	"labix.org/v2/mgo"
 	"lib/config"
 	"log"
@@ -56,6 +57,7 @@ func loadMapping(conf config.RecipesConfig) {
 	// Create the name=>mid mapping.
 	for iter.Next(&ingredient) {
 		cleanedName := strings.TrimSpace( strings.ToLower(*ingredient.Name) )
+		cleanedName = inflector.Singularize(cleanedName)
 		IngredientMap[cleanedName] = ingredient.Ingrids[0]
 	}
 }

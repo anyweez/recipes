@@ -2,6 +2,7 @@ package main
 
 import (
 	gproto "code.google.com/p/goprotobuf/proto"
+	"github.com/gedex/inflector"
 	"fmt"
 	"log"
 	proto "proto"
@@ -22,6 +23,7 @@ func (l *Labeler) GetIngredient(la *LabelerArgs, reply *proto.Ingredient) error 
 
 	// Lowercase the string (all strings in mapping are lowercase for case insensitivity)
 	la.IngredientString = strings.ToLower(la.IngredientString)
+	la.IngredientString = inflector.Singularize(la.IngredientString)
 
 	// Break the phrase up into tokens.
 	tokens := strings.Split(la.IngredientString, " ")

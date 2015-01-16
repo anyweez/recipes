@@ -59,6 +59,13 @@ func loadMapping(conf config.RecipesConfig) {
 		cleanedName := strings.TrimSpace( strings.ToLower(*ingredient.Name) )
 		cleanedName = inflector.Singularize(cleanedName)
 		IngredientMap[cleanedName] = ingredient.Ingrids[0]
+
+		// Aliases should be treated identically to primary names
+		for _, name := range ingredient.OtherNames {
+			cleanedName = strings.TrimSpace( strings.ToLower(name) )
+			cleanedName = inflector.Singularize(cleanedName)
+			IngredientMap[cleanedName] = ingredient.Ingrids[0]
+		}
 	}
 }
 

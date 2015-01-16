@@ -57,6 +57,16 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
 			
 			return false
 			break
+		case "/common/topic/alias":
+			ingredient, _ := mapping[subj]
+			parts := strings.Split(obj, "@")
+
+			if len(parts) == 1 || parts[1] == "en" {
+				ingredient.OtherNames = append(ingredient.OtherNames, obj)
+				return true
+			}
+
+			return false
 		default:
 			break
 	}

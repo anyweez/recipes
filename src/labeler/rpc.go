@@ -23,7 +23,6 @@ func (l *Labeler) GetIngredient(la *LabelerArgs, reply *proto.Ingredient) error 
 
 	// Lowercase the string (all strings in mapping are lowercase for case insensitivity)
 	la.IngredientString = strings.ToLower(la.IngredientString)
-	la.IngredientString = inflector.Singularize(la.IngredientString)
 
 	// Break the phrase up into tokens.
 	tokens := strings.Split(la.IngredientString, " ")
@@ -33,7 +32,7 @@ func (l *Labeler) GetIngredient(la *LabelerArgs, reply *proto.Ingredient) error 
 	for length := 1; length <= len(tokens); length++ {
 		for start := 0; start+length <= len(tokens); start++ {
 			log.Println( strings.Join(tokens[start:start+length], " ") )
-			substr := strings.Join(tokens[start:start+length], " ")
+			substr := inflector.Singularize( strings.Join(tokens[start:start+length], " ") )
 			val, exists := IngredientMap[substr]
 
 			// If the key exists, save it.

@@ -93,6 +93,8 @@ func isKeeper(subj, pred, obj string) bool {
 		(pred == "/common/topic/notable_types" && obj == "/m/025d707") ||
 		// This is /business/endorsed_product (for "milk" primarily)
 		(pred == "/common/topic/notable_types" && obj == "/m/04ykwby") ||
+		// This is /distilled_spirits/distilled_spirit_type (for alcohols)
+		(pred == "/common/topic/notable_types" && obj == "/m/046cz3_") ||
 		// This is /food/dish.
 		(pred == "/common/topic/notable_types" && obj == "/m/03yw5sq") {
 		return true

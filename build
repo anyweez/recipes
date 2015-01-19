@@ -9,6 +9,7 @@ go get -u code.google.com/p/goprotobuf/proto
 go get -u labix.org/v2/mgo
 go get -u labix.org/v2/mgo/bson
 go get -u code.google.com/p/gcfg
+go get -u github.com/gonum/matrix/mat64
 
 mkdir -p src/proto
 protoc --plugin=bin/protoc-gen-go --go_out=src/ proto/*.proto

@@ -184,7 +184,9 @@ func main() {
 
 		i := 0
 		for iter.Next(&result) {
+			log.Println("parsing")
 			recipe := parse(result.Content)
+			log.Println("finsihed parsing")
 			recipe.SourceUrl = gproto.String( string(result.Page) )
 			fmt.Println(fmt.Sprintf("%d. %s (%d min prep, %d min cook, %d min ready)",
 				i+1,

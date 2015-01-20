@@ -19,6 +19,9 @@ type MongoConfig struct {
 	RecipeCollection			string
 	IngredientCollection		string
 	RecommendationCollection	string
+	ResponseCollection			string
+	UserCollection				string
+	GroupCollection				string
 }
 
 type FreebaseConfig struct {

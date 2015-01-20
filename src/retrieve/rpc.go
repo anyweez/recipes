@@ -1,5 +1,14 @@
 package main
 
+/**
+ * This package contains the core retrieval functions for the application,
+ * which are exposed through the RPC interface defined in retrieve.go in
+ * this package.
+ * 
+ * These RPC's are specifically online retrieval-based functions and depend
+ * on offline processes to do a bunch of quality work.
+ */
+
 import (
 	"bytes"
 	"encoding/json"
@@ -31,78 +40,11 @@ type GraphNode struct {
 }
 
 /**
- * The request object that contains all of the fields required to make a
- * best recipe RPC call.
+ * EXPOSED AS RPC
  * 
- * All fields are currently required.
+ * Returns a list of all known ingredients, to be used for populating lists,
+ * autocomplete, etc.
  */
-type BestRecipesRequest struct {
-	// Will eventually be removed from the API. Currently useful for testing
-	Seed		int64
-	UserId		uint64
-	GroupId		uint64
-	
-	// The number of recipes desired, if possible (not guaranteed)
-	Count		int
-}
-
-/**
- * GetPartialRecipes fetches a list of recipes that contain all of the
- * ingredients provided in the input IngredientList.
- */
-func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBook) error {
-	//session, _ := mgo.Dial(*MONGO)
-	session, err := mgo.Dial("localhost:27017")
-	if err != nil {
-		log.Fatal("Couldn't connect to MongoDB instance.")
-	}
-	c := session.DB("recipes").C("parsed")
-
-	log.Println("RPC REQUEST:" + strings.Join(il.Ingredients, ","))
-	url := fmt.Sprintf("http://%s/api/v1/query/gremlin", *OUTPUT_QUADS)
-
-	recipes := make(map[string]int, 0)
-
-	for _, ingredient := range il.Ingredients {
-		// Body (Gremlin query)
-		data := []byte(fmt.Sprintf("g.Vertex(\"%s\").In(\"contains\").All()", ingredient))
-		resp, err := http.Post(url, "text/plain", bytes.NewReader(data))
-
-		if err != nil {
-			log.Fatal("Couldn't update Cayley: " + err.Error())
-		}
-
-		defer resp.Body.Close()
-
-		bd, _ := ioutil.ReadAll(resp.Body)
-		gr := GraphResult{}
-		json.Unmarshal(bd, &gr)
-
-		// Create a set.
-		for _, node := range gr.Result {
-			_, exists := recipes[node.Id]
-			if exists {
-				recipes[node.Id] += 1
-			} else {
-				recipes[node.Id] = 1
-			}
-		}
-	}
-
-	for key, val := range recipes {
-		log.Println(fmt.Sprintf("%s => %d", key, val))
-		// Keep the recipe if it was retrieved for each ingredient.
-		if val == len(il.Ingredients) {
-			recipe := proto.Recipe{}
-			c.Find(bson.M{"id": key}).One(&recipe)
-
-			reply.Recipes = append(reply.Recipes, &recipe)
-		}
-	}
-
-	return nil
-}
-
 func (r *Retriever) GetIngredients(na string, ingr *[]proto.Ingredient) error {
 	for _, in := range fetch.AllIngredients() {
 		*ingr = append(*ingr, in)
@@ -112,6 +54,8 @@ func (r *Retriever) GetIngredients(na string, ingr *[]proto.Ingredient) error {
 }
 
 /**
+ * EXPOSED AS RPC
+ * 
  * Get the top recommended recipes for a specified user in a specified group.
  * This function will pull first from the recommended recipe cache (if
  * available) and fill the remaining open slots with randomly selected
@@ -188,7 +132,8 @@ func fetchRecommended(session *mgo.Session, request BestRecipesRequest, count in
 
 /**
  * Fetch random recipes to backfill for a shortage from fetchRecommended()
- * and do some light quality filtering.
+ * and do some light quality filtering. Recipes returned from this function
+ * can be returned multiple times (a ServingRecord is not maintained for them).
  */
 func fetchMore(session *mgo.Session, request BestRecipesRequest, count int) []proto.Recipe {
 	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)
@@ -258,4 +203,125 @@ func merge(first []proto.Recipe, second []proto.Recipe) []proto.Recipe {
 	}
 	
 	return recipes
+}
+
+/**
+ * EXPOSED AS RPC
+ * 
+ * Fetch the list of all recent responses for a given recipe within a group.
+ */
+func (r *Retriever) GetRecipeResponse(request RecipeResponseRequest, response *[]proto.RecipeResponses_RecipeResponse) error {
+	session, err := mgo.Dial(conf.Mongo.ConnectionString())
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+	
+	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.ResponseCollection)
+	responses := proto.RecipeResponses{}
+	c.Find(bson.M{"group_id": request.GroupId}).One(&responses)
+	
+	// If the recipe has any responses, find them and add them.
+	for _, rr := range responses.Responses {
+		if *rr.Recipe.Id == request.RecipeId {
+			*response = append(*response, *rr)
+		}
+	}
+	
+	return nil
+}
+
+/**
+ * EXPOSED AS RPC 
+ * 
+ * Record a user's response to a recipe. Note that all responses are made in
+ * the context of a group, so a single call to this function will only
+ * store the answer once; if it should be stored for all of the user's
+ * groups then the call will need to be made multiple times.
+ */
+func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) error {
+	// Connect to Mongo
+	session, err := mgo.Dial(conf.Mongo.ConnectionString())
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+//	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.ResponseCollection)
+	// Atomically fetch proto.RecipeResponses object by request.GroupId,
+	// and add this respones as another Response.
+	user := fetch.User(request.UserId)
+	resp_enum := proto.RecipeResponses_RecipeResponse_NO
+	if request.Response {
+		resp_enum = proto.RecipeResponses_RecipeResponse_YES
+	}
+	
+	resp := proto.RecipeResponses_RecipeResponse {
+		User: &user,
+		Response: &resp_enum,
+	}
+	
+	// TODO: get rid of this.
+	log.Println(resp)
+	
+	return nil	
+}
+
+/**
+ * EXPOSED AS RPC
+ * 
+ * GetPartialRecipes fetches a list of recipes that contain all of the
+ * ingredients provided in the input IngredientList.
+ */
+func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBook) error {
+	//session, _ := mgo.Dial(*MONGO)
+	session, err := mgo.Dial("localhost:27017")
+	if err != nil {
+		log.Fatal("Couldn't connect to MongoDB instance.")
+	}
+	c := session.DB("recipes").C("parsed")
+
+	log.Println("RPC REQUEST:" + strings.Join(il.Ingredients, ","))
+	url := fmt.Sprintf("http://%s/api/v1/query/gremlin", *OUTPUT_QUADS)
+
+	recipes := make(map[string]int, 0)
+
+	for _, ingredient := range il.Ingredients {
+		// Body (Gremlin query)
+		data := []byte(fmt.Sprintf("g.Vertex(\"%s\").In(\"contains\").All()", ingredient))
+		resp, err := http.Post(url, "text/plain", bytes.NewReader(data))
+
+		if err != nil {
+			log.Fatal("Couldn't update Cayley: " + err.Error())
+		}
+
+		defer resp.Body.Close()
+
+		bd, _ := ioutil.ReadAll(resp.Body)
+		gr := GraphResult{}
+		json.Unmarshal(bd, &gr)
+
+		// Create a set.
+		for _, node := range gr.Result {
+			_, exists := recipes[node.Id]
+			if exists {
+				recipes[node.Id] += 1
+			} else {
+				recipes[node.Id] = 1
+			}
+		}
+	}
+
+	for key, val := range recipes {
+		log.Println(fmt.Sprintf("%s => %d", key, val))
+		// Keep the recipe if it was retrieved for each ingredient.
+		if val == len(il.Ingredients) {
+			recipe := proto.Recipe{}
+			c.Find(bson.M{"id": key}).One(&recipe)
+
+			reply.Recipes = append(reply.Recipes, &recipe)
+		}
+	}
+
+	return nil
 }

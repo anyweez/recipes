@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"lib/config"
 	"log"
 	"net"
 	"net/http"
@@ -12,7 +13,11 @@ import (
 var PORT = flag.Int("port", 14501, "The port the process should listen on.")
 var OUTPUT_QUADS = flag.String("out", "localhost:64210", "The file where the quads file should be output.")
 
+var conf config.RecipesConfig
+
 func main() {
+	conf = config.New("recipes.conf")
+	
 	retriever := new(Retriever)
 	rpc.Register(retriever)
 	rpc.HandleHTTP()

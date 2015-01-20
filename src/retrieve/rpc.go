@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	//	gproto "code.google.com/p/goprotobuf/proto"
+//	gproto "code.google.com/p/goprotobuf/proto"
 	"io/ioutil"
-	"lib/ingredients"
+	"lib/fetch"
 	"log"
 	"math/rand"
 	"net/http"
@@ -28,6 +28,22 @@ type GraphResult struct {
 
 type GraphNode struct {
 	Id string
+}
+
+/**
+ * The request object that contains all of the fields required to make a
+ * best recipe RPC call.
+ * 
+ * All fields are currently required.
+ */
+type BestRecipesRequest struct {
+	// Will eventually be removed from the API. Currently useful for testing
+	Seed		int64
+	UserId		uint64
+	GroupId		uint64
+	
+	// The number of recipes desired, if possible (not guaranteed)
+	Count		int
 }
 
 /**
@@ -88,34 +104,158 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 }
 
 func (r *Retriever) GetIngredients(na string, ingr *[]proto.Ingredient) error {
-	for _, in := range ingredients.GetAll() {
+	for _, in := range fetch.AllIngredients() {
 		*ingr = append(*ingr, in)
 	}
 
 	return nil
 }
 
-func (r *Retriever) GetBestRecipes(seed int64, recipes *[]proto.Recipe) error {
+/**
+ * Get the top recommended recipes for a specified user in a specified group.
+ * This function will pull first from the recommended recipe cache (if
+ * available) and fill the remaining open slots with randomly selected
+ * recipes (lightly filtered).
+ */
+func (r *Retriever) GetBestRecipes(request BestRecipesRequest, recipes *[]proto.Recipe) error {
+	log.Println( fmt.Sprintf("Request count=%d for user=%d, group=%d", request.Count, request.UserId, request.GroupId) )
 	// Seed the random number generator
-	rand.Seed(seed)
+	rand.Seed(request.Seed)
 
 	// Connect to Mongo
-	session, err := mgo.Dial("10.1.1.81:27017")
+	session, err := mgo.Dial(conf.Mongo.ConnectionString())
+	defer session.Close()
+	
 	if err != nil {
 		log.Fatal("Couldn't connect to MongoDB instance.")
 	}
-	c := session.DB("recipes").C("recipes")
+	
+	// Get as many recommended recipes as possible (up to request.Count).
+	rset := fetchRecommended(session, request, request.Count)
+	
+	// If we didn't find as many recipes as requested, find some more (probably
+	// lower quality recipes) to backfill with and merge the two lists together.
+	//
+	// Note that this is likely slower than fetchRecommended so the goal is
+	// to make it relatively unlikely that this branch is required. The main
+	// lever we have for that is the size of the recommended recipes cache.
+	if len(rset) < request.Count {
+		rset = merge(rset, fetchMore(session, request, request.Count - len(rset)))
+	}	
 
-	numRecords, _ := c.Count()
-	// Fetch ten different recipes and send 'em back.
-	for i := 0; i < 10; i++ {
-		r := proto.Recipe{}
+	for _, recipe := range rset {
+		// TODO: copy over to recommended if it doesn't exist and update ServingStatus 
+		*recipes = append(*recipes, recipe)
+	}
+	return nil
+}
+
+/**
+ * Fetch recommended recipes from a precomputed datastore. The list is simply treated
+ * like a queue and recipes are read from the front of the list.
+ * 
+ * Once read, recipes are (potentially?) labeled as "returned" until they're answered,
+ * at which point they're labeled as "answered."
+ */
+func fetchRecommended(session *mgo.Session, request BestRecipesRequest, count int) []proto.Recipe {
+	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecommendationCollection)
+
+	// TODO: filter out recipes where Recipe.ServingRecord.User.Id = userid on the database.
+	iter := c.Find(bson.M{"group_id": request.GroupId}).Iter()
+	recipe := proto.Recipe{}
+	recipes := make([]proto.Recipe, 0)
+	
+	// Iterate through all returned records until either we run out of records or
+	// we get all that we came for.
+	for iter.Next(&recipe) || len(recipes) == count {
+		eligible := true
 		
-		skip := rand.Int() % numRecords
-		c.Find(nil).Skip(skip).One(&r)
-
-		*recipes = append(*recipes, r)
+		// Check to see if this record has been shown to a user before. If not, include it
+		// in the returned set.
+		for _, sr := range recipe.ServingRecord {
+			if *sr.User.Id == request.UserId && *sr.Status != proto.Recipe_ServingRecord_NOT_RETURNED {
+				eligible = false
+			}
+		}
+		
+		if eligible {
+			recipes = append(recipes, recipe)
+		}
 	}
 
-	return nil
+	return recipes
+}
+
+/**
+ * Fetch random recipes to backfill for a shortage from fetchRecommended()
+ * and do some light quality filtering.
+ */
+func fetchMore(session *mgo.Session, request BestRecipesRequest, count int) []proto.Recipe {
+	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)
+	fmt.Println( fmt.Sprintf("Fetching %d recipes.", count) )
+	// TODO: filter out recipes where Recipe.ServingRecord.User.Id = userid on the database.
+	// TODO: is `context` the right word in Mongo-speak?
+	query := c.Find(nil)
+	numRecords, _ := query.Count()
+	
+	recipe := proto.Recipe{}
+	recipes := make([]proto.Recipe, 0)
+
+	// Randomly select COUNT values, which will be indeces of recipes
+	// that we want to use.
+	chosen := make([]int, 0, count+1)
+
+	for i := 0; i < count+1; i++ {
+		index := rand.Int() % numRecords
+		chosen = append(chosen, index)
+	}
+	
+	// Skip to the first record and grab it.
+	i := 0
+	query.Skip(chosen[i])
+	err := query.One(&recipe)
+
+	for err == nil && len(recipes) < count {
+		// Store this recipe.
+		// TODO: do some basic and quick quality checks
+		fmt.Println(*recipe.Name)
+		recipes = append(recipes, recipe)
+
+		// Retrieve a new record
+		i++
+		query.Skip(chosen[i])
+		err = query.One(&recipe)	
+	}
+
+	return recipes
+}
+
+func merge(first []proto.Recipe, second []proto.Recipe) []proto.Recipe {
+	// Make a new slice that is at least as long as the first list.
+	recipes := make([]proto.Recipe, 0, len(first))
+	
+	// Copy the first list in, then copy over anything from the second list
+	// that's unique from elements in the first list.
+	for _, r := range first {
+		recipes = append(recipes, r)
+	}
+	
+	for _, r := range second {
+		unique := true
+		
+		for _, existing := range recipes {
+			// If this recipe exists in the list, don't keep it anymore.
+			if r.Id == existing.Id {
+				unique = false
+				break
+			}
+		}
+		
+		// If the recipe doesn't already exist in the list, add it.
+		if unique {
+			recipes = append(recipes, r)
+		}
+	}
+	
+	return recipes
 }

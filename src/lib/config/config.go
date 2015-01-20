@@ -12,12 +12,13 @@ type RecipesConfig struct {
 }
 
 type MongoConfig struct {
-	Address					string
-	Port					int
-	DatabaseName			string
-	RawCollection			string
-	RecipeCollection		string
-	IngredientCollection	string
+	Address						string
+	Port						int
+	DatabaseName				string
+	RawCollection				string
+	RecipeCollection			string
+	IngredientCollection		string
+	RecommendationCollection	string
 }
 
 type FreebaseConfig struct {

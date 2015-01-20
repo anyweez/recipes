@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"encoding/json"
 	proto "proto"
+	retrieve "retrieve"
 	"strconv"
 	"time"
 )
@@ -31,7 +32,12 @@ func best_recipes(w http.ResponseWriter, r *http.Request) {
 	log.Println( fmt.Sprintf("Seed: %d", seed) )
 
 	recipes := make([]proto.Recipe, 0)
-   	err = client.Call("Retriever.GetBestRecipes", seed, &recipes)
+   	err = client.Call("Retriever.GetBestRecipes", retrieve.BestRecipesRequest{
+		Seed: seed,
+		UserId: 5,
+		GroupId: 1,
+		Count: 5,
+	}, &recipes)
    	
 	data, _ := json.Marshal(recipes)
 	fmt.Fprintf(w, string(data))

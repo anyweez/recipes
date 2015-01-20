@@ -62,23 +62,59 @@ message Ingredient {
 // ./bin/recipes --mongodb=recipes --size=100 --path=output sample
 
 message Recipe {
-	optional string id = 1;
-	optional string name = 2;
-	optional Time time = 3;
-	optional float servings = 4;
-	repeated Ingredient ingredients = 5;
-
 	// Various time measurements, in minutes.
 	message Time {
 		optional uint32 prep = 1;
 		optional uint32 cook = 2;
 		optional uint32 ready = 3;
 	}
+		
+	// ServingRecord data is used to keep track of the state of a recommendation, 
+	// specifically whether its been shared or responded to by users.
+	message ServingRecord {
+		// ServingStatus is used at serving time to store whether a particular
+		// recipe has been shared with the user.
+		enum ServingStatus {
+			NOT_RETURNED	=	1;
+			RETURNED		=	2;
+			RESPONDED		=	3;
+		}
+
+		optional ServingStatus status = 1;
+		optional User user = 2;
+	}
+	
+	optional string id = 1;
+	optional string name = 2;
+	optional Time time = 3;
+	optional float servings = 4;
+	repeated Ingredient ingredients = 5;
 	
 	// Absolute URL's to images of the finished product.
 	repeated string image_urls = 6;
 	// The URL that the resource originally lived at.
 	optional string source_url = 7;
+
+	repeated ServingRecord serving_record = 8;
+}
+
+// RecommendedRecipes is a container used to store all of the recipes
+// that are recommended for a particular group.
+message RecommendedRecipes {
+	message Recommendation {
+		optional Recipe recipe = 1;
+		optional float32 score = 2;
+	}
+	
+	optional int64 group_id = 1;
+	repeated Recommendation recommendations = 2;
+}
+
+message User {
+	// Internal unique identifier
+	optional uint64 id = 1;
+	// External unique identifier
+	optional string	identifier = 2;
 }
 
 // A container for holding a set of recipes, primarily for writing to

@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-//	gproto "code.google.com/p/goprotobuf/proto"
+	gproto "code.google.com/p/goprotobuf/proto"
 	"io/ioutil"
 	"lib/fetch"
 	"log"
@@ -238,6 +238,10 @@ func (r *Retriever) GetRecipeResponse(request RecipeResponseRequest, response *[
  * the context of a group, so a single call to this function will only
  * store the answer once; if it should be stored for all of the user's
  * groups then the call will need to be made multiple times.
+ * 
+ * TODO: this function currently contains a race condition if members of
+ * the same group submit responses in close proximity. Need to use atomic update
+ * and commit.
  */
 func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) error {
 	// Connect to Mongo
@@ -246,24 +250,46 @@ func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) er
 		return err
 	}
 	defer session.Close()
-
-//	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.ResponseCollection)
+	
+	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.ResponseCollection)
 	// Atomically fetch proto.RecipeResponses object by request.GroupId,
 	// and add this respones as another Response.
 	user := fetch.User(request.UserId)
+	recipe := fetch.Recipe(request.RecipeId)
 	resp_enum := proto.RecipeResponses_RecipeResponse_NO
 	if request.Response {
 		resp_enum = proto.RecipeResponses_RecipeResponse_YES
 	}
 	
+	cnt, err := c.Find(bson.M{"group_id": request.GroupId}).Count()
+	if err != nil {
+		log.Println("ERROR: " + err.Error())
+	}
+	
 	resp := proto.RecipeResponses_RecipeResponse {
 		User: &user,
 		Response: &resp_enum,
+		Recipe: &recipe,
 	}
 	
-	// TODO: get rid of this.
-	log.Println(resp)
-	
+	// Append to the existing record.
+	// TODO: simplify this by using an upsert?
+	if cnt > 0 {
+		rr := proto.RecipeResponses{}
+		c.Find(bson.M{"group_id": request.GroupId}).One(&rr)
+			
+		rr.Responses = append(rr.Responses, &resp)
+		c.Update(bson.M{"group_id": request.GroupId}, rr)
+	// Create a new record.
+	} else {
+		rr := proto.RecipeResponses{
+			GroupId: gproto.Uint64(request.GroupId),
+		}
+		
+		rr.Responses = append(rr.Responses, &resp)
+		c.Insert(rr);
+	}
+		
 	return nil	
 }
 

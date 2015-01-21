@@ -3,40 +3,49 @@ package main
 import (
 	"flag"
 	"io/ioutil"
-	"log"
+	log "logging"
 	"net/http"
 	"net/rpc"
 	retrieve "retrieve"
 	"strconv"
 )
 
-var INGREDIENTS = flag.String("ingredients", "m/0ggm5yy", "The ingredients we should search for.")
+// TODO: move these to configuration file.
 var RETRIEVER = flag.String("retriever", "127.0.0.1:14501", "")
 var MONGO = flag.String("mongo", "127.0.0.1:27017", "")
 
 // Fetch the index page for the "rate" URL path.
 func rate_index_handler(w http.ResponseWriter, r *http.Request) {
-	log.Println("index requested")
+	le := log.New("web_request", log.Fields{
+		"handler": "rate_index_handler",
+	})
 
 	data, err := ioutil.ReadFile("html/rate/index.html")
 	if err != nil {
-		log.Println("rate/index.html not present!")
+		le.Update(log.STATUS_FATAL, "rate/index.html not present!", nil)
 		http.NotFound(w, r)
 	} else {
 		w.Write(data)
 	}
+	
+	le.Update(log.STATUS_COMPLETE, "", nil)
 }
 
 func submit_response(w http.ResponseWriter, r *http.Request) {
+	le := log.New("web_request", log.Fields{
+		"handler": "submit_response",
+	})
+	
 	client, err := rpc.DialHTTP("tcp", *RETRIEVER)
 	if err != nil {
-		log.Fatal("Couldn't connect to retriever: " + err.Error())
+		le.Update(log.STATUS_FATAL, "Couldn't connect to retriever: " + err.Error(), nil)
 	}
 
 	recipe_id := r.URL.Query().Get("recipe")
 	response, err := strconv.ParseBool(r.URL.Query().Get("response")) // "true" or "false"
 	if err != nil {
-		log.Println("Invalid valid for response; must be 'true' or 'false'.")
+		le.Update(log.STATUS_ERROR, "Invalid value for `response`; must be 'true' or 'false'.", nil)
+		// TODO: return something to the user, or at least handle this more elegantly.
 		return
 	}
 	
@@ -51,32 +60,46 @@ func submit_response(w http.ResponseWriter, r *http.Request) {
 	}, &success)
 	
 	w.Write( []byte("Success!") )
+	le.Update(log.STATUS_COMPLETE, "", nil)
 }
 
 func main() {
 	flag.Parse()
+	le := log.New("frontend", nil)
 
-	// Serve any files in static/ directly from the filesystem.
-	http.HandleFunc("/rate/static/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("GET", r.URL.Path[1:])
-		http.ServeFile(w, r, "html/"+r.URL.Path[1:])
-	})
-	// Page requests (HTML, CSS, JS, etc)
-	http.HandleFunc("/rate", rate_index_handler)
-	
 	// Data requests (API calls)
 	http.HandleFunc("/api/ingredients", list_ingredients)
 	http.HandleFunc("/api/response", submit_response)
 	http.HandleFunc("/api/best", best_recipes)
+	
+
+	// Page requests (HTML, CSS, JS, etc)
+	http.HandleFunc("/rate", rate_index_handler)
+	// Serve any files in static/ directly from the filesystem.
+	http.HandleFunc("/rate/static/", func(w http.ResponseWriter, r *http.Request) {
+		le := log.New("web_request", log.Fields{
+			"handler": "<inline>",
+			"path": r.URL.Path[1:],
+		})
+
+		http.ServeFile(w, r, "html/"+r.URL.Path[1:])
+		le.Update(log.STATUS_COMPLETE, "", nil)
+	})
+	
+	
 	// No-op handler for favicon.ico, since it'll otherwise generate an extra call to index.
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
-
 	// Serve any files in static/ directly from the filesystem.
 	http.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("GET", r.URL.Path[1:])
+		le := log.New("web_request", log.Fields{
+			"handler": "<inline>",
+			"path": r.URL.Path[1:],
+		})
+		
 		http.ServeFile(w, r, "html/"+r.URL.Path[1:])
+		le.Update(log.STATUS_COMPLETE, "", nil)
 	})
 
-	log.Println("Awaiting requests...")
-	log.Fatal("Couldn't listen on port 8088:", http.ListenAndServe(":8088", nil))
+	le.Update(log.STATUS_OK, "Awaiting requests...", nil)
+	le.Update(log.STATUS_FATAL, "Couldn't listen on port 8088:" + http.ListenAndServe(":8088", nil).Error(), nil)
 }

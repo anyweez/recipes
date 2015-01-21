@@ -17,12 +17,12 @@ import (
 	"labix.org/v2/mgo/bson"
 	gproto "code.google.com/p/goprotobuf/proto"
 	"io/ioutil"
+	"lib/config"
 	"lib/fetch"
-	"log"
+	log "logging"
 	"math/rand"
 	"net/http"
 	proto "proto"
-	"strings"
 )
 
 type Retriever int
@@ -62,7 +62,12 @@ func (r *Retriever) GetIngredients(na string, ingr *[]proto.Ingredient) error {
  * recipes (lightly filtered).
  */
 func (r *Retriever) GetBestRecipes(request BestRecipesRequest, recipes *[]proto.Recipe) error {
-	log.Println( fmt.Sprintf("Request count=%d for user=%d, group=%d", request.Count, request.UserId, request.GroupId) )
+	// Create a stable request ID for this RPC call.
+	le := log.New("GetBestRecipe", log.Fields{
+		"userid": request.UserId,
+		"groupid": request.GroupId,
+	})
+	
 	// Seed the random number generator
 	rand.Seed(request.Seed)
 
@@ -71,11 +76,16 @@ func (r *Retriever) GetBestRecipes(request BestRecipesRequest, recipes *[]proto.
 	defer session.Close()
 	
 	if err != nil {
-		log.Fatal("Couldn't connect to MongoDB instance.")
+		le.Update(log.STATUS_FATAL, "Couldn't connect to MongoDB instance.", log.Fields{
+			"db": conf.Mongo.DatabaseName,
+			"ip": conf.Mongo.Address,
+			"port": conf.Mongo.Port,
+		})
 	}
 	
 	// Get as many recommended recipes as possible (up to request.Count).
 	rset := fetchRecommended(session, request, request.Count)
+	numRecommended := len(rset)
 	
 	// If we didn't find as many recipes as requested, find some more (probably
 	// lower quality recipes) to backfill with and merge the two lists together.
@@ -83,7 +93,7 @@ func (r *Retriever) GetBestRecipes(request BestRecipesRequest, recipes *[]proto.
 	// Note that this is likely slower than fetchRecommended so the goal is
 	// to make it relatively unlikely that this branch is required. The main
 	// lever we have for that is the size of the recommended recipes cache.
-	if len(rset) < request.Count {
+	if numRecommended < request.Count {
 		rset = merge(rset, fetchMore(session, request, request.Count - len(rset)))
 	}	
 
@@ -91,6 +101,12 @@ func (r *Retriever) GetBestRecipes(request BestRecipesRequest, recipes *[]proto.
 		// TODO: copy over to recommended if it doesn't exist and update ServingStatus 
 		*recipes = append(*recipes, recipe)
 	}
+
+	// Log the completion of the event.
+	le.Update(log.STATUS_COMPLETE, "", log.Fields{
+		"recommended": numRecommended,
+		"more": len(rset) - numRecommended, 		
+	})
 	return nil
 }
 
@@ -137,7 +153,6 @@ func fetchRecommended(session *mgo.Session, request BestRecipesRequest, count in
  */
 func fetchMore(session *mgo.Session, request BestRecipesRequest, count int) []proto.Recipe {
 	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)
-	fmt.Println( fmt.Sprintf("Fetching %d recipes.", count) )
 	// TODO: filter out recipes where Recipe.ServingRecord.User.Id = userid on the database.
 	// TODO: is `context` the right word in Mongo-speak?
 	query := c.Find(nil)
@@ -163,7 +178,6 @@ func fetchMore(session *mgo.Session, request BestRecipesRequest, count int) []pr
 	for err == nil && len(recipes) < count {
 		// Store this recipe.
 		// TODO: do some basic and quick quality checks
-		fmt.Println(*recipe.Name)
 		recipes = append(recipes, recipe)
 
 		// Retrieve a new record
@@ -244,6 +258,13 @@ func (r *Retriever) GetRecipeResponse(request RecipeResponseRequest, response *[
  * and commit.
  */
 func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) error {
+	// Create a stable logging request for this RPC call.
+	le := log.New("PostRecipeResponse", log.Fields{
+		"userid": request.UserId,
+		"groupid": request.GroupId,
+		"recipeid": request.RecipeId,		
+	})
+
 	// Connect to Mongo
 	session, err := mgo.Dial(conf.Mongo.ConnectionString())
 	if err != nil {
@@ -263,7 +284,7 @@ func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) er
 	
 	cnt, err := c.Find(bson.M{"group_id": request.GroupId}).Count()
 	if err != nil {
-		log.Println("ERROR: " + err.Error())
+		le.Update(log.STATUS_ERROR, err.Error(), nil)
 	}
 	
 	resp := proto.RecipeResponses_RecipeResponse {
@@ -290,6 +311,8 @@ func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) er
 		c.Insert(rr);
 	}
 		
+	le.Update(log.STATUS_COMPLETE, "", nil)
+	
 	return nil	
 }
 
@@ -300,16 +323,23 @@ func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) er
  * ingredients provided in the input IngredientList.
  */
 func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBook) error {
+	log.Info("Inbound RPC request", log.Fields{
+		"rpc": "GetPartialRecipes",
+	})
+	
+	conf := config.New("recipes.conf")
 	//session, _ := mgo.Dial(*MONGO)
-	session, err := mgo.Dial("localhost:27017")
+	session, err := mgo.Dial(conf.Mongo.ConnectionString())
 	if err != nil {
-		log.Fatal("Couldn't connect to MongoDB instance.")
+		log.Fatal("Couldn't connect to MongoDB instance.", log.Fields{
+			"db": conf.Mongo.DatabaseName,
+			"ip": conf.Mongo.Address,
+			"port": conf.Mongo.Port,
+		})	
 	}
 	c := session.DB("recipes").C("parsed")
 
-	log.Println("RPC REQUEST:" + strings.Join(il.Ingredients, ","))
 	url := fmt.Sprintf("http://%s/api/v1/query/gremlin", *OUTPUT_QUADS)
-
 	recipes := make(map[string]int, 0)
 
 	for _, ingredient := range il.Ingredients {
@@ -318,7 +348,7 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 		resp, err := http.Post(url, "text/plain", bytes.NewReader(data))
 
 		if err != nil {
-			log.Fatal("Couldn't update Cayley: " + err.Error())
+			log.Fatal("Couldn't update Cayley: " + err.Error(), nil)	
 		}
 
 		defer resp.Body.Close()
@@ -339,7 +369,6 @@ func (r *Retriever) GetPartialRecipes(il *IngredientList, reply *proto.RecipeBoo
 	}
 
 	for key, val := range recipes {
-		log.Println(fmt.Sprintf("%s => %d", key, val))
 		// Keep the recipe if it was retrieved for each ingredient.
 		if val == len(il.Ingredients) {
 			recipe := proto.Recipe{}

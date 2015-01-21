@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"lib/config"
-	"log"
+	log "logging"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -17,19 +17,19 @@ var conf config.RecipesConfig
 
 func main() {
 	conf = config.New("recipes.conf")
+	le := log.New("retriever", nil)
 	
 	retriever := new(Retriever)
 	rpc.Register(retriever)
 	rpc.HandleHTTP()
-	log.Println("Launching retriever...")
 
 	// Start listening!
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", *PORT))
 
 	if err != nil {
-		log.Fatal("Couldn't start listening:" + err.Error())
+		le.Update(log.STATUS_FATAL, "Couldn't start listening:" + err.Error(), nil)
 	}
 
-	log.Println("Setup complete. Listening for RPC's on HTTP interface.")
+	le.Update(log.STATUS_OK, "Setup complete. Listening for RPC's on HTTP interface.", nil)
 	http.Serve(l, nil)
 }

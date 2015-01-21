@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	log "logging"
 	"net/http"
 	"net/rpc"
 	"math/rand"
@@ -14,12 +14,16 @@ import (
 )
 
 func best_recipes(w http.ResponseWriter, r *http.Request) {
+	le := log.New("web_request", log.Fields{
+		"handler": "best_recipes",
+	})
+	
 	client, err := rpc.DialHTTP("tcp", *RETRIEVER)
 	if err != nil {
-		log.Fatal("Couldn't connect to retriever: " + err.Error())
+		le.Update(log.STATUS_FATAL, "Couldn't connect to retriever: " + err.Error(), nil)
 	}
 	
-	rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().UnixNano())
 	seed := int64(rand.Int())
 
 	rseed_str := r.URL.Query().Get("seed")
@@ -28,8 +32,6 @@ func best_recipes(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		seed = rseed
 	}
-
-	log.Println( fmt.Sprintf("Seed: %d", seed) )
 
 	recipes := make([]proto.Recipe, 0)
    	err = client.Call("Retriever.GetBestRecipes", retrieve.BestRecipesRequest{
@@ -41,4 +43,6 @@ func best_recipes(w http.ResponseWriter, r *http.Request) {
    	
 	data, _ := json.Marshal(recipes)
 	fmt.Fprintf(w, string(data))
+	
+	le.Update(log.STATUS_COMPLETE, "", nil)
 }

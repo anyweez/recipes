@@ -1,13 +1,13 @@
 language: go
 
 go:
-	- 1.2
-	- 1.3
-	- tip
+  - 1.2
+  - 1.3
+  - tip
 
 before_install:
-        - chmod +x build
+  - chmod +x build
 
 install: 
-	- ./build
+  - ./build
 

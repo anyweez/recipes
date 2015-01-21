@@ -148,6 +148,20 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 								hasQuantity = false
 							}
 						}
+
+						// On a rare occasion (< .1%) recipes will have a special type
+						// of heading that seems to be able to be treated the same as
+						// ingredient-name. Keeping it separate for now since it seems
+						// like it could be semantically different, or accidental on the
+						// part of the recipe provider.
+						if attr.Key == "class" && attr.Val == "ingred-heading" {
+							tk.Next()
+							ingrName = tk.Token().String()
+
+							if len(quantity) == 0 {
+								hasQuantity = false
+							}
+						}
 					}
 				}
 				recipe.Ingredients = append(recipe.Ingredients, _getIngredient(ingrName, quantity, client))

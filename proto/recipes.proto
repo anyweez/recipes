@@ -56,6 +56,9 @@ message Ingredient {
 	
 	// The original string used to describe the quantity of the ingredient.
 	optional string quantity_string = 7;
+
+	// Other names that the ingredient may have other than `name`
+	repeated string other_names = 8;
 }
 
 // ./bin/recipes --mongodb=recipes --expvar scrape    // localhost/debug/vars and look recipes

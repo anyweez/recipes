@@ -30,14 +30,15 @@ func split(line string, lineno int) (string, string, string, error) {
 
 func convertFreebaseId(uri string) string{
 	uri = strings.Replace(uri, "\"", "", -1) 
-    if strings.HasPrefix(uri, "<") && strings.HasSuffix(uri, ">") {
-       var id = uri[1 : len(uri)-1]
-       id = strings.Replace(id, "http://rdf.freebase.com/ns", "", -1)
-       id = strings.Replace(id, ".", "/", -1)
-       return id
-    }
-     
-    return uri
+
+	if strings.HasPrefix(uri, "<") && strings.HasSuffix(uri, ">") {
+		id := uri[1 : len(uri)-1]
+		id = strings.Replace(id, "http://rdf.freebase.com/ns", "", -1)
+		id = strings.Replace(id, ".", "/", -1)
+		return id
+	}
+
+	return uri
 }
 
 func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj string) bool {
@@ -57,6 +58,16 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
 			
 			return false
 			break
+		case "/common/topic/alias":
+			ingredient, _ := mapping[subj]
+			parts := strings.Split(obj, "@")
+
+			if len(parts) == 1 || parts[1] == "en" {
+				ingredient.OtherNames = append(ingredient.OtherNames, obj)
+				return true
+			}
+
+			return false
 		default:
 			break
 	}
@@ -70,14 +81,20 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
  * to be skipped.
  */
 func isKeeper(subj, pred, obj string) bool {
-	// If notable_type is /food/food (expecting 8,615 cases at time of writing
-	// according to http://www.freebase.com/food?schema=).
-	// 1,793 appear to be extracted; hypothesis is that some don't have English names.
+	// Keep any entities that fall into any of the following categories.
 	if 	(pred == "/common/topic/notable_types" && obj == "/m/05yxcqj") ||
 		// This is /food/ingredient.
 		(pred == "/common/topic/notable_types" && obj == "/m/03yw5hv") ||
 		// This is /food/cheese.
 		(pred == "/common/topic/notable_types" && obj == "/m/01xs0vd") ||
+		// This is /business/product_ingredient (for "water" primarily)
+		(pred == "/common/topic/notable_types" && obj == "/m/065s6kw") ||
+		// This is /chemistry/chemical_compound (for "baking soda" primarily)
+		(pred == "/common/topic/notable_types" && obj == "/m/025d707") ||
+		// This is /business/endorsed_product (for "milk" primarily)
+		(pred == "/common/topic/notable_types" && obj == "/m/04ykwby") ||
+		// This is /distilled_spirits/distilled_spirit_type (for alcohols)
+		(pred == "/common/topic/notable_types" && obj == "/m/046cz3_") ||
 		// This is /food/dish.
 		(pred == "/common/topic/notable_types" && obj == "/m/03yw5sq") {
 		return true

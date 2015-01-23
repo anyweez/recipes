@@ -1,9 +1,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	gcfg "code.google.com/p/gcfg"
-	"log"
 )
 
 type RecipesConfig struct {
@@ -28,15 +28,15 @@ type FreebaseConfig struct {
 	DumpLocation	string
 }
 
-func New(filename string) RecipesConfig {
+func New(filename string) (RecipesConfig, error) {
 	c := RecipesConfig{}
 	// Read the configuration.
 	err := gcfg.ReadFileInto(&c, filename)
 	if err != nil {
-		log.Fatal("Error reading configuration file: " + err.Error())
+		return c, errors.New("Error reading configuration file: " + err.Error())
 	}
 
-	return c
+	return c, nil
 }
 
 func (mc *MongoConfig) ConnectionString() string {

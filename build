@@ -23,6 +23,6 @@ protoc --plugin=bin/protoc-gen-go --go_out=src/ proto/*.proto
 # Build the extractor binary (parse HTML to structured recipe.
 go build extract
 go build labeler
-go build learn
+# go build learn
 go build retrieve
 go build frontend

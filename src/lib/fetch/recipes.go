@@ -19,7 +19,7 @@ type PageRecord struct {
 var rc *mgo.Collection
 
 func init() {
-	conf := config.New("recipes.conf")
+	conf, _ := config.New("recipes.conf")
 	
 	session, err := mgo.Dial(conf.Mongo.ConnectionString())
 	if err != nil {

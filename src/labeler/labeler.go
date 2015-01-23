@@ -74,7 +74,7 @@ func main() {
 
 	// Load the ingredient map.
 	log.Println("Loading ingredient map...")
-	conf := config.New("recipes.conf")
+	conf, _ := config.New("recipes.conf")
 	loadMapping(conf)
 	log.Println(fmt.Sprintf("Loaded %d ingredients.", len(IngredientMap)))
 

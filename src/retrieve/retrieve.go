@@ -16,7 +16,7 @@ var OUTPUT_QUADS = flag.String("out", "localhost:64210", "The file where the qua
 var conf config.RecipesConfig
 
 func main() {
-	conf = config.New("recipes.conf")
+	conf, _ = config.New("recipes.conf")
 	le := log.New("retriever", nil)
 	
 	retriever := new(Retriever)

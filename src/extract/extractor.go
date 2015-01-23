@@ -94,7 +94,7 @@ func main() {
 	}
 	mode := os.Args[1]
 	// Load the configuration.
-	conf := config.New("recipes.conf")
+	conf, _ := config.New("recipes.conf")
 
 	switch mode {
 	/**

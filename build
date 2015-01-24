@@ -6,15 +6,15 @@ export GOPATH=`pwd`
 sudo apt-get install -y protobuf-compiler
 
 # Install golang protobuf compiler and library if they aren't present.
-go get -u -t github.com/golang/protobuf/{proto,protoc-gen-go}
-go get -u -t golang.org/x/net/html
-go get -u -t code.google.com/p/goprotobuf/proto
-go get -u -t labix.org/v2/mgo
-go get -u -t labix.org/v2/mgo/bson
-go get -u -t code.google.com/p/gcfg
-go get -u -t github.com/gonum/matrix/mat64
-go get -u -t github.com/Sirupsen/logrus
-go get -u -t github.com/gedex/inflector
+go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+go get -u golang.org/x/net/html
+go get -u code.google.com/p/goprotobuf/proto
+go get -u labix.org/v2/mgo
+go get -u labix.org/v2/mgo/bson
+go get -u code.google.com/p/gcfg
+go get -u github.com/gonum/matrix/mat64
+go get -u github.com/Sirupsen/logrus
+go get -u github.com/gedex/inflector
 
 mkdir -p src/proto
 protoc --plugin=bin/protoc-gen-go --go_out=src/ proto/*.proto

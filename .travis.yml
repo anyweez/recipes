@@ -13,3 +13,5 @@ before_install:
 install: 
   - ./build
 
+script:
+  - ./runtests

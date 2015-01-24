@@ -1,0 +1,19 @@
+#!/bin/bash
+
+EXCLUDE=(code.google.com github.com golang.org labix.org gopkg.in launchpad.net)
+#PACKAGES=(code.google.com/test github.com/nope/test extract)
+PACKAGES=(`go list ./...`)
+
+
+for pack in ${PACKAGES[*]}; do
+	valid=true
+	for ex in ${EXCLUDE[*]}; do
+		if [[ ${pack} == ${ex}* ]]; then
+			valid=false
+		fi
+	done
+	
+	if [ $valid == true ]; then
+		go test $pack
+	fi
+done

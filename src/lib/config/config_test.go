@@ -1,7 +1,7 @@
 package config
 
 import (
-//	"fmt"
+	"log"
 	"testing"
 )
 
@@ -75,7 +75,6 @@ func TestInvalidData(t *testing.T) {
  * 		- No error is returned.
  * 		- Output string properly generated without throwing an exception.
  */
- /*
 func TestCreateConnectionString(t *testing.T) {
 	conf, err := New("test/recipes.conf")
 	
@@ -89,4 +88,3 @@ func TestCreateConnectionString(t *testing.T) {
 	str := conf.Mongo.ConnectionString()
 	str = str
 }
-*/

@@ -12,7 +12,7 @@ import (
 )
 
 func find_recipes(w http.ResponseWriter, r *http.Request) {
-	client, err := rpc.DialHTTP("tcp", *RETRIEVER)
+	client, err := rpc.DialHTTP("tcp", conf.Rpc.ConnectionString())
 	if err != nil {
 		log.Fatal("Couldn't connect to retriever: " + err.Error())
 	}

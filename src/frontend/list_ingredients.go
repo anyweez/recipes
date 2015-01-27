@@ -11,7 +11,7 @@ import (
 
 func list_ingredients(w http.ResponseWriter, r *http.Request) {
 	// Create a connection to the RPC server to handle this request.
-	client, err := rpc.DialHTTP("tcp", *RETRIEVER)
+	client, err := rpc.DialHTTP("tcp", conf.Rpc.ConnectionString())
 	if err != nil {
 		log.Fatal("Couldn't connect to retriever: " + err.Error())
 	}

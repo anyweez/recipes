@@ -18,7 +18,7 @@ func best_recipes(w http.ResponseWriter, r *http.Request) {
 		"handler": "best_recipes",
 	})
 	
-	client, err := rpc.DialHTTP("tcp", *RETRIEVER)
+	client, err := rpc.DialHTTP("tcp", conf.Rpc.ConnectionString())
 	if err != nil {
 		le.Update(log.STATUS_FATAL, "Couldn't connect to retriever: " + err.Error(), nil)
 	}

@@ -9,6 +9,7 @@ import (
 type RecipesConfig struct {
 	Mongo		MongoConfig
 	Freebase	FreebaseConfig
+	Rpc			RPCConfig
 }
 
 type MongoConfig struct {
@@ -22,6 +23,11 @@ type MongoConfig struct {
 	ResponseCollection			string
 	UserCollection				string
 	GroupCollection				string
+}
+
+type RPCConfig struct {
+	Address						string
+	Port						int
 }
 
 type FreebaseConfig struct {
@@ -41,4 +47,8 @@ func New(filename string) (RecipesConfig, error) {
 
 func (mc *MongoConfig) ConnectionString() string {
 	return fmt.Sprintf("%s:%d", mc.Address, mc.Port)
+}
+
+func (rpcc *RPCConfig) ConnectionString() string {
+	return fmt.Sprintf("%s:%d", rpcc.Address, rpcc.Port)	
 }

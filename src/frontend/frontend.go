@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"lib/config"
 	log "logging"
 	"net/http"
 	"net/rpc"
@@ -10,9 +11,17 @@ import (
 	"strconv"
 )
 
-// TODO: move these to configuration file.
-var RETRIEVER = flag.String("retriever", "127.0.0.1:14501", "")
-var MONGO = flag.String("mongo", "127.0.0.1:27017", "")
+var conf config.RecipesConfig
+
+func init() {
+	// TODO: check that this was read in correctly.
+	conf, _ = config.New("recipes.conf")
+	
+//	if err != nil {
+//		le := log.New("init", nil)
+//		le.Update(log.STATUS_FATAL, err.Error(), nil)
+//	}
+}
 
 // Fetch the index page for the "rate" URL path.
 func rate_index_handler(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +45,7 @@ func submit_response(w http.ResponseWriter, r *http.Request) {
 		"handler": "submit_response",
 	})
 	
-	client, err := rpc.DialHTTP("tcp", *RETRIEVER)
+	client, err := rpc.DialHTTP("tcp", conf.Mongo.ConnectionString())
 	if err != nil {
 		le.Update(log.STATUS_FATAL, "Couldn't connect to retriever: " + err.Error(), nil)
 	}

@@ -2,12 +2,14 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"lib/config"
 	log "logging"
 	"net/http"
 	"net/rpc"
 	retrieve "retrieve"
+	router "frontend/router"
 	"strconv"
 )
 
@@ -77,12 +79,23 @@ func main() {
 	le := log.New("frontend", nil)
 
 	// Data requests (API calls)
-	http.HandleFunc("/api/ingredients", list_ingredients)
-	http.HandleFunc("/api/response", submit_response)
-	http.HandleFunc("/api/best", best_recipes)
-	
+//	http.HandleFunc("/api/ingredients", list_ingredients)
+//	http.HandleFunc("/api/response", submit_response)
+//	http.HandleFunc("/api/best", best_recipes)
 
-	// Page requests (HTML, CSS, JS, etc)
+	// Supported API calls
+	// Specification at https://github.com/luke-segars/dinder-docs
+	http.HandleFunc("/user", router.User)
+//	http.HandleFunc("/user/login", route_user_login)
+//	http.HandleFunc("/groups", route_groups)
+//	http.HandleFunc("/group/add_user", route_group_add_user)
+//	http.HandleFunc("/meal", route_meal)
+//	http.HandleFunc("/meal/status", route_meal_status)
+//	http.HandleFunc("/recipes", route_meal_status)
+//	http.HandleFunc("/vote", route_vote)
+
+
+	// Standard web server HTTP requests
 	http.HandleFunc("/rate", rate_index_handler)
 	// Serve any files in static/ directly from the filesystem.
 	http.HandleFunc("/rate/static/", func(w http.ResponseWriter, r *http.Request) {
@@ -94,8 +107,6 @@ func main() {
 		http.ServeFile(w, r, "html/"+r.URL.Path[1:])
 		le.Update(log.STATUS_COMPLETE, "", nil)
 	})
-	
-	
 	// No-op handler for favicon.ico, since it'll otherwise generate an extra call to index.
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	// Serve any files in static/ directly from the filesystem.
@@ -109,6 +120,6 @@ func main() {
 		le.Update(log.STATUS_COMPLETE, "", nil)
 	})
 
-	le.Update(log.STATUS_OK, "Awaiting requests...", nil)
-	le.Update(log.STATUS_FATAL, "Couldn't listen on port 8088:" + http.ListenAndServe(":8088", nil).Error(), nil)
+	le.Update(log.STATUS_OK, fmt.Sprintf("Awaiting requests on port %d", conf.Frontend.Port), nil)
+	le.Update(log.STATUS_FATAL, "Couldn't listen on port 8088:" + http.ListenAndServe( fmt.Sprintf(":%d", conf.Frontend.Port), nil ).Error(), nil)
 }

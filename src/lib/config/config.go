@@ -10,6 +10,7 @@ type RecipesConfig struct {
 	Mongo		MongoConfig
 	Freebase	FreebaseConfig
 	Rpc			RPCConfig
+	Frontend	FrontendConfig
 }
 
 type MongoConfig struct {
@@ -32,6 +33,10 @@ type RPCConfig struct {
 
 type FreebaseConfig struct {
 	DumpLocation	string
+}
+
+type FrontendConfig struct {
+	Port			int
 }
 
 func New(filename string) (RecipesConfig, error) {

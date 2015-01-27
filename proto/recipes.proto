@@ -135,7 +135,8 @@ message User {
 	// Internal unique identifier
 	optional uint64 id = 1;
 	// External unique identifier
-	optional string	identifier = 2;
+	optional string	name = 2;
+	optional uint64 create_ms = 3;
 }
 
 message Group {

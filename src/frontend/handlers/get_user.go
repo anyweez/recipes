@@ -1,9 +1,7 @@
 package handlers
 
 import (
-//	gproto "code.google.com/p/goprotobuf/proto"
 	"encoding/json"
-	"fmt"
 	fee "frontend/errors"
 	"lib/fetch"
 	"net/http"

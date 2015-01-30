@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"lib/config"
 	log "logging"
@@ -83,22 +85,23 @@ func main() {
 //	http.HandleFunc("/api/response", submit_response)
 //	http.HandleFunc("/api/best", best_recipes)
 
+	r := mux.NewRouter()
 	// Supported API calls
 	// Specification at https://github.com/luke-segars/dinder-docs
-	http.HandleFunc("/user", router.User)
-//	http.HandleFunc("/user/login", route_user_login)
-//	http.HandleFunc("/groups", route_groups)
-//	http.HandleFunc("/group/add_user", route_group_add_user)
-//	http.HandleFunc("/meal", route_meal)
-//	http.HandleFunc("/meal/status", route_meal_status)
-//	http.HandleFunc("/recipes", route_meal_status)
-//	http.HandleFunc("/vote", route_vote)
-
+	r.HandleFunc("/users", router.User)
+	r.HandleFunc("/users/me", router.UserMe)
+	r.HandleFunc("/users/login", router.Login)
+	r.HandleFunc("/groups", router.Groups)
+	r.HandleFunc("/groups/{group_id}/user", router.GroupsIdUser)
+	r.HandleFunc("/meals/today", router.MealsToday)
+	r.HandleFunc("/meals/today/status", router.MealsTodayStatus)
+	r.HandleFunc("/meals/vote", router.MealsVote)
+	r.HandleFunc("/recipes", router.Recipes)
 
 	// Standard web server HTTP requests
-	http.HandleFunc("/rate", rate_index_handler)
+	r.HandleFunc("/rate", rate_index_handler)
 	// Serve any files in static/ directly from the filesystem.
-	http.HandleFunc("/rate/static/", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/rate/static/", func(w http.ResponseWriter, r *http.Request) {
 		le := log.New("web_request", log.Fields{
 			"handler": "<inline>",
 			"path": r.URL.Path[1:],
@@ -108,9 +111,9 @@ func main() {
 		le.Update(log.STATUS_COMPLETE, "", nil)
 	})
 	// No-op handler for favicon.ico, since it'll otherwise generate an extra call to index.
-	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
+	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	// Serve any files in static/ directly from the filesystem.
-	http.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
 		le := log.New("web_request", log.Fields{
 			"handler": "<inline>",
 			"path": r.URL.Path[1:],
@@ -120,6 +123,9 @@ func main() {
 		le.Update(log.STATUS_COMPLETE, "", nil)
 	})
 
+	http.Handle("/", r)
 	le.Update(log.STATUS_OK, fmt.Sprintf("Awaiting requests on port %d", conf.Frontend.Port), nil)
-	le.Update(log.STATUS_FATAL, "Couldn't listen on port 8088:" + http.ListenAndServe( fmt.Sprintf(":%d", conf.Frontend.Port), nil ).Error(), nil)
+
+	err := http.ListenAndServe( fmt.Sprintf(":%d", conf.Frontend.Port), context.ClearHandler(http.DefaultServeMux) )
+	le.Update(log.STATUS_FATAL, "Couldn't listen on port 8088:" + err.Error(), nil)
 }

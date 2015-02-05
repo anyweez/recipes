@@ -29,8 +29,15 @@ var CORRUPTED_SESSION = FrontendError{
 	ErrorCode: 102,
 }
 
+var USER_DOESNT_EXIST = FrontendError{
+	ErrorText: "This API function hasn't been implemented yet.",
+	HttpCode: 500,
+	ErrorCode: 103,	
+}
+
 var HANDLER_NOT_IMPLEMENTED = FrontendError{
 	ErrorText: "This API function hasn't been implemented yet.",
 	HttpCode: 501,
 	ErrorCode: 200,
 }
+

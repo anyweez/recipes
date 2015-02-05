@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gorilla/sessions"
 //	"github.com/gorilla/securecookie"
+	log "logging"
 	"net/http"
 )
 
@@ -27,7 +28,7 @@ func init() {
  * 
  * It is a generic interface for other functions in this package.
  */
-type Handler func(w http.ResponseWriter, r *http.Request) 
+type Handler func(w http.ResponseWriter, r *http.Request, le log.LogEvent) 
 
 /**
  * Registries contain mappings between HTTP methods (GET, POST, etc) and

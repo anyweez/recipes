@@ -275,7 +275,7 @@ func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) er
 	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.ResponseCollection)
 	// Atomically fetch proto.RecipeResponses object by request.GroupId,
 	// and add this respones as another Response.
-	user := fetch.User(request.UserId)
+	user, _ := fetch.UserById(request.UserId)
 	recipe := fetch.Recipe(request.RecipeId)
 	resp_enum := proto.RecipeResponses_RecipeResponse_NO
 	if request.Response {

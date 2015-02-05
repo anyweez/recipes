@@ -76,7 +76,7 @@ func route(path string, w http.ResponseWriter, r *http.Request, hndl handlers.Re
 	fn, exists := hndl[r.Method]
 	
 	if exists {
-		fn(w, r)
+		fn(w, r, le)
 		le.Update(log.STATUS_COMPLETE, "", nil)
 		
 		return nil

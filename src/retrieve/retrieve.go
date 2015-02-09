@@ -18,7 +18,7 @@ var conf config.RecipesConfig
 func main() {
 	conf, _ = config.New("recipes.conf")
 	le := log.New("retriever", nil)
-	
+
 	retriever := new(Retriever)
 	rpc.Register(retriever)
 	rpc.HandleHTTP()
@@ -27,7 +27,7 @@ func main() {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", *PORT))
 
 	if err != nil {
-		le.Update(log.STATUS_FATAL, "Couldn't start listening:" + err.Error(), nil)
+		le.Update(log.STATUS_FATAL, "Couldn't start listening:"+err.Error(), nil)
 	}
 
 	le.Update(log.STATUS_OK, "Setup complete. Listening for RPC's on HTTP interface.", nil)

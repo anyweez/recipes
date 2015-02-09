@@ -28,7 +28,7 @@ func UserMe(w http.ResponseWriter, r *http.Request) {
 
 func Groups(w http.ResponseWriter, r *http.Request) {
 	route("/groups", w, r, handlers.Registry{
-		"GET": handlers.GetGroups,
+		"GET":  handlers.GetGroups,
 		"POST": handlers.CreateGroup,
 	})
 }
@@ -71,19 +71,19 @@ func Recipes(w http.ResponseWriter, r *http.Request) {
 func route(path string, w http.ResponseWriter, r *http.Request, hndl handlers.Registry) error {
 	le := log.New("web_request", log.Fields{
 		"handled_path": path,
-		"method": r.Method,
+		"method":       r.Method,
 	})
 	fn, exists := hndl[r.Method]
-	
+
 	if exists {
 		fn(w, r, le)
 		le.Update(log.STATUS_COMPLETE, "", nil)
-		
+
 		return nil
 	} else {
 		msg := fmt.Sprintf("No handler specified for method %s on path %s", r.Method, path)
-		
+
 		le.Update(log.STATUS_ERROR, msg, nil)
-		return errors.New( msg )
+		return errors.New(msg)
 	}
 }

@@ -1,10 +1,10 @@
 package fetch
 
 import (
-	"lib/config"
-	"log"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"lib/config"
+	"log"
 	proto "proto"
 )
 
@@ -20,19 +20,19 @@ var rc *mgo.Collection
 
 func init() {
 	conf, _ := config.New("recipes.conf")
-	
+
 	session, err := mgo.Dial(conf.Mongo.ConnectionString())
 	if err != nil {
 		log.Fatal("Recipe retrieval API can't connect to MongoDB instance: " + conf.Mongo.ConnectionString())
 	}
-	
+
 	rc = session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)
 }
 
 func Recipe(recipeId string) proto.Recipe {
 	recipe := proto.Recipe{}
 	rc.Find(bson.M{"id": recipeId}).One(&recipe)
-	
+
 	return recipe
 }
 
@@ -50,7 +50,7 @@ func AllRecipes() []proto.Recipe {
 	for iter.Next(&recipe) {
 		recipes = append(recipes, recipe)
 	}
-	
+
 	return recipes
 }
 

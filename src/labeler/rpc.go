@@ -2,8 +2,8 @@ package main
 
 import (
 	gproto "code.google.com/p/goprotobuf/proto"
-	"github.com/gedex/inflector"
 	"fmt"
+	"github.com/gedex/inflector"
 	"log"
 	proto "proto"
 	"strings"
@@ -31,8 +31,8 @@ func (l *Labeler) GetIngredient(la *LabelerArgs, reply *proto.Ingredient) error 
 	// Iterate through all possible substrings
 	for length := 1; length <= len(tokens); length++ {
 		for start := 0; start+length <= len(tokens); start++ {
-			log.Println( strings.Join(tokens[start:start+length], " ") )
-			substr := inflector.Singularize( strings.Join(tokens[start:start+length], " ") )
+			log.Println(strings.Join(tokens[start:start+length], " "))
+			substr := inflector.Singularize(strings.Join(tokens[start:start+length], " "))
 			val, exists := IngredientMap[substr]
 
 			// If the key exists, save it.

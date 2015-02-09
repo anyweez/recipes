@@ -84,7 +84,7 @@ func isImageToken(token html.Token) bool {
 func _parser(tk *html.Tokenizer) proto.Recipe {
 	client, err := rpc.DialHTTP("tcp", *LABELER)
 	if err != nil {
-		log.Fatal( fmt.Sprintf("Couldn't connect to labeler at %s [%s]", *LABELER, err.Error()) )
+		log.Fatal(fmt.Sprintf("Couldn't connect to labeler at %s [%s]", *LABELER, err.Error()))
 	}
 	defer client.Close()
 
@@ -104,7 +104,7 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 
 		// Parser
 		if tok.Type == html.StartTagToken || tok.Type == html.SelfClosingTagToken {
-			
+
 			/**
 			 * Title tokens contain the title of the recipe. The tokken
 			 * after the title token is what contains the title itself.
@@ -112,11 +112,11 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 			if isTitleToken(tok) {
 				tk.Next()
 				recipe.Name = gproto.String(_getTitle(tk.Token()))
-			/**
-			 * The PrepTimeToken contains the number of hours and minutes
-			 * required to prepare the dish. It is extracted from the <time>
-			 * element.
-			 */
+				/**
+				 * The PrepTimeToken contains the number of hours and minutes
+				 * required to prepare the dish. It is extracted from the <time>
+				 * element.
+				 */
 			} else if isPrepTimeToken(tok) {
 				recipe.Time.Prep = gproto.Uint32(_getTime(tok))
 			} else if isCookTimeToken(tok) {
@@ -127,21 +127,21 @@ func _parser(tk *html.Tokenizer) proto.Recipe {
 				hasQuantity := true
 				quantity := ""
 				ingrName := ""
-				
+
 				// Parse out the ingredient name and the quantity.
 				for len(ingrName) == 0 && (hasQuantity || len(quantity) == 0) {
-					tk.Next()					
+					tk.Next()
 					tok = tk.Token()
 					for _, attr := range tok.Attr {
 						if attr.Key == "class" && attr.Val == "ingredient-amount" {
 							tk.Next()
 							quantity = tk.Token().String()
 						}
-						
+
 						if attr.Key == "class" && attr.Val == "ingredient-name" {
 							tk.Next()
 							ingrName = tk.Token().String()
-							
+
 							// If we get the ingredient name with no quantity value,
 							// mark that the quality value won't be coming.
 							if len(quantity) == 0 {

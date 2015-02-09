@@ -14,4 +14,3 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	w.WriteHeader(err.HttpCode)
 	w.Write(data)
 }
-

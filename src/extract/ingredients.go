@@ -2,12 +2,12 @@ package main
 
 import (
 	"bufio"
-	"fmt"
-	"errors"
-	"labix.org/v2/mgo"
-	"lib/config"	
-	"log"
 	gproto "code.google.com/p/goprotobuf/proto"
+	"errors"
+	"fmt"
+	"labix.org/v2/mgo"
+	"lib/config"
+	"log"
 	"os"
 	proto "proto"
 	"strings"
@@ -22,14 +22,14 @@ func split(line string, lineno int) (string, string, string, error) {
 
 	// Cut the last two characters off of the final part (" .")
 	if len(parts) > 2 && len(parts[2])-2 > 0 {
-		return convertFreebaseId(parts[0]), convertFreebaseId(parts[1]), convertFreebaseId(parts[2][0:len(parts[2])-2]), nil
+		return convertFreebaseId(parts[0]), convertFreebaseId(parts[1]), convertFreebaseId(parts[2][0 : len(parts[2])-2]), nil
 	} else {
 		return "", "", "", errors.New("Invalid string in Freebase: " + line)
 	}
 }
 
-func convertFreebaseId(uri string) string{
-	uri = strings.Replace(uri, "\"", "", -1) 
+func convertFreebaseId(uri string) string {
+	uri = strings.Replace(uri, "\"", "", -1)
 
 	if strings.HasPrefix(uri, "<") && strings.HasSuffix(uri, ">") {
 		id := uri[1 : len(uri)-1]
@@ -44,34 +44,34 @@ func convertFreebaseId(uri string) string{
 func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj string) bool {
 	// This switch statement identifies which predicates should be stored,
 	// and what field they should be stored in.
-	switch (pred) {
-		case "/type/object/name":
-			ingredient, _ := mapping[subj]
-			parts := strings.Split(obj, "@")
-			
-			// Save the name if there's no language tag or if the language
-			// tag indicates English.
-			if len(parts) == 1 || parts[1] == "en" {
-				ingredient.Name = gproto.String(parts[0])
-				return true
-			}
-			
-			return false
-			break
-		case "/common/topic/alias":
-			ingredient, _ := mapping[subj]
-			parts := strings.Split(obj, "@")
+	switch pred {
+	case "/type/object/name":
+		ingredient, _ := mapping[subj]
+		parts := strings.Split(obj, "@")
 
-			if len(parts) == 1 || parts[1] == "en" {
-				ingredient.OtherNames = append(ingredient.OtherNames, obj)
-				return true
-			}
+		// Save the name if there's no language tag or if the language
+		// tag indicates English.
+		if len(parts) == 1 || parts[1] == "en" {
+			ingredient.Name = gproto.String(parts[0])
+			return true
+		}
 
-			return false
-		default:
-			break
+		return false
+		break
+	case "/common/topic/alias":
+		ingredient, _ := mapping[subj]
+		parts := strings.Split(obj, "@")
+
+		if len(parts) == 1 || parts[1] == "en" {
+			ingredient.OtherNames = append(ingredient.OtherNames, obj)
+			return true
+		}
+
+		return false
+	default:
+		break
 	}
-	
+
 	return false
 }
 
@@ -82,7 +82,7 @@ func store(mapping map[string]*proto.Ingredient, subj string, pred string, obj s
  */
 func isKeeper(subj, pred, obj string) bool {
 	// Keep any entities that fall into any of the following categories.
-	if 	(pred == "/common/topic/notable_types" && obj == "/m/05yxcqj") ||
+	if (pred == "/common/topic/notable_types" && obj == "/m/05yxcqj") ||
 		// This is /food/ingredient.
 		(pred == "/common/topic/notable_types" && obj == "/m/03yw5hv") ||
 		// This is /food/cheese.
@@ -109,16 +109,16 @@ func isKeeper(subj, pred, obj string) bool {
  */
 func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 	ingredients := make([]*proto.Ingredient, 0)
-	
+
 	// Step 1: open file w/ reader (note that it can be VERY big so it needs to be buffered)
 	fp, err := os.Open(conf.Freebase.DumpLocation)
 	if err != nil {
 		log.Fatal("Couldn't open Freebase sample file at " + conf.Freebase.DumpLocation)
 	}
-	
-	// TESTING: if we make the buffer large do we get any extra 
+
+	// TESTING: if we make the buffer large do we get any extra
 	reader := bufio.NewReaderSize(fp, 1000000)
-	
+
 	// Step 2: create two maps, one that keeps track of ingredient data (keyed by mid)
 	//   and the other that keeps track of whether a given ingredient is a "keeper."
 	//   Note that all ingredients are assuming to be keepers until a property is
@@ -138,11 +138,11 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 	}
 	for lerr == nil {
 		subj, pred, obj, err := split(string(line), line_count)
-		
+
 		if err != nil {
 			log.Println(err.Error())
 		}
-		
+
 		// If this is a new mid, either get rid of or store current.
 		if subj != current_mid {
 			_, keeper := iv[current_mid]
@@ -150,9 +150,9 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 			// If the mid exists and is a keeper, store it. Make sure we know
 			// the name or it's not interesting.
 			if keeper && im[current_mid].Name != nil {
-				log.Println( fmt.Sprintf("Keeping %s!", *im[current_mid].Name) )
+				log.Println(fmt.Sprintf("Keeping %s!", *im[current_mid].Name))
 				ingredients = append(ingredients, im[current_mid])
-			// Or forget that this key ever existed.
+				// Or forget that this key ever existed.
 			} else {
 				if keeper {
 					log.Println("getting rid of a keeper because of a missing name")
@@ -160,30 +160,30 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
 				delete(iv, current_mid)
 				delete(im, current_mid)
 			}
-			
+
 			im[subj] = &proto.Ingredient{}
 			current = im[subj]
-			current.Ingrids = append( current.Ingrids, subj )
+			current.Ingrids = append(current.Ingrids, subj)
 			current_mid = subj
 		}
-		
+
 		// Check whether this record indicates that this is a record to keep.
 		if isKeeper(subj, pred, obj) {
 			iv[subj] = true
 		}
-		
+
 		// Store the field on the current object
-		store(im, subj, pred, obj)		
+		store(im, subj, pred, obj)
 
 		line_count += 1
 		line, ovflw, lerr = reader.ReadLine()
 		if ovflw {
 			log.Println("Overflowed read buffer")
-		}	
+		}
 	}
 
 	// Expected 2,117,736,192 at time of writing.
-	log.Println( fmt.Sprintf("%d lines read.", line_count) )
+	log.Println(fmt.Sprintf("%d lines read.", line_count))
 	return ingredients
 }
 
@@ -194,7 +194,7 @@ func ExtractIngredients(conf config.RecipesConfig) []*proto.Ingredient {
  * untouched if they're not present in the input slice.
  */
 func UpdateIngredients(conf config.RecipesConfig, ingredients []*proto.Ingredient) error {
-	session, err := mgo.Dial( conf.Mongo.ConnectionString() )
+	session, err := mgo.Dial(conf.Mongo.ConnectionString())
 	if err != nil {
 		log.Fatal("Couldn't connect to MongoDB to update ingredient list: " + err.Error())
 	}
@@ -203,6 +203,6 @@ func UpdateIngredients(conf config.RecipesConfig, ingredients []*proto.Ingredien
 	for _, ingr := range ingredients {
 		c.Insert(ingr)
 	}
-	
+
 	return nil
 }

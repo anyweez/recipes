@@ -1,20 +1,35 @@
 package handlers
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	fee "frontend/errors"
 	"fmt"
 	"lib/fetch"
 //	gproto "code.google.com/p/goprotobuf/proto"	
-	"io/ioutil"
+//	"io/ioutil"
 	log "logging"
 	"net/http"
-//	proto "proto"
-	"strings"
+	proto "proto"
+//	"strings"
 )
 
+type LoginRequest struct {
+	Name			string
+	EmailAddress	string
+}
+
+func init() {
+	// Register users to be encodable as gobs so that they can be stored
+	// in sessions.
+	gob.Register(&proto.User{})
+}
+
 func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
-	body, err := ioutil.ReadAll(r.Body)	
+	post_request := LoginRequest{}
+		
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&post_request)
 	
 	// If we can't read the body, throw an error.
 	if err != nil {
@@ -26,11 +41,10 @@ func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		return
 	}
 	
-	email := strings.Trim(string(body), " ")
-	session, serr := storage.Get(r, email)
+	session, serr := storage.Get(r, "userdata")
 
 	// If the session couldn't be decoded, we've got to return an error.
-	// This shouldn't happen unless something were to 
+	// This shouldn't happen unless something were to go wrong.
 	if serr != nil {
 	//	log.Println( serr.Error() )
 		cserr := fee.CORRUPTED_SESSION
@@ -42,17 +56,17 @@ func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 
 	// Check if the user is logged in already.
 	if _, exists := session.Values["user"].(string); exists {
-		le.Update(log.STATUS_WARNING, fmt.Sprintf("User is already logged in.", email), nil)
+		le.Update(log.STATUS_WARNING, fmt.Sprintf("User is already logged in.", post_request.Name), nil)
 		return
 	}
 
 	// Store the user's data in the encrypted session.
 	// TODO: validate the email address.
-	user, err := fetch.UserByName(email)
+	user, err := fetch.UserByName(post_request.Name)
 
 	// If the user doesn't exist, return an error.
 	if err != nil {
-		le.Update(log.STATUS_ERROR, "The requested user doesn't exist.", nil)
+		le.Update(log.STATUS_ERROR, "The requested user couldn't be found: " + err.Error(), nil)
 		
 		e := fee.USER_DOESNT_EXIST
 		data, _ := json.Marshal(e)
@@ -64,7 +78,7 @@ func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		werr := session.Save(r, w)
 	
 		if werr != nil {
-			le.Update(log.STATUS_ERROR, "Error retrieving user data.", nil)
+			le.Update(log.STATUS_ERROR, "Error storing user data in session: " + werr.Error(), nil)
 		}
 	}
 }

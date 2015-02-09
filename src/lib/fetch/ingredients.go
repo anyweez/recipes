@@ -11,7 +11,10 @@ import (
 var ic *mgo.Collection
 
 func init() {
-	conf, _ := config.New("recipes.conf")
+	conf, err := config.New("recipes.conf")
+	if err != nil {
+		log.Fatal("Couldn't load configuration file 'recipes.conf'." + "; " + err.Error())
+	}
 	
 	session, err := mgo.Dial(conf.Mongo.ConnectionString())
 	if err != nil {

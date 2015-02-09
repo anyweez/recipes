@@ -30,7 +30,7 @@ var CORRUPTED_SESSION = FrontendError{
 }
 
 var USER_DOESNT_EXIST = FrontendError{
-	ErrorText: "This API function hasn't been implemented yet.",
+	ErrorText: "The requested user doesn't exist.",
 	HttpCode: 500,
 	ErrorCode: 103,	
 }
@@ -41,3 +41,8 @@ var HANDLER_NOT_IMPLEMENTED = FrontendError{
 	ErrorCode: 200,
 }
 
+var NOT_LOGGED_IN = FrontendError {
+	ErrorText: "The requested user is not logged in.",
+	HttpCode: 401,
+	ErrorCode: 201,
+}

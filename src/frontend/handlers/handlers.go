@@ -1,6 +1,7 @@
 package handlers
 
 import (
+"fmt"
 	"github.com/gorilla/sessions"
 //	"github.com/gorilla/securecookie"
 	log "logging"
@@ -36,4 +37,18 @@ type Handler func(w http.ResponseWriter, r *http.Request, le log.LogEvent)
  */
 type Registry map[string]Handler
 
-var store = sessions.NewCookieStore()
+//var store = sessions.NewCookieStore()
+
+/**
+ * A function to determine whether a user with a given name is logged in.
+ */
+func IsLoggedIn(r *http.Request) bool {
+	session, serr := storage.Get(r, "userdata")
+		
+	if serr != nil {
+		fmt.Println("IsLoggedIn: " + serr.Error())
+	}
+		
+	_, exists := session.Values["user"]
+	return exists
+}

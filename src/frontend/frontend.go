@@ -5,29 +5,34 @@ import (
 	"fmt"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
-	"io/ioutil"
+//	"io/ioutil"
 	"lib/config"
 	log "logging"
 	"net/http"
-	"net/rpc"
-	retrieve "retrieve"
+//	"net/rpc"
+//	retrieve "retrieve"
 	router "frontend/router"
-	"strconv"
+//	"strconv"
 )
 
 var conf config.RecipesConfig
+var CONFIG_LOCATION = flag.String("config", "recipes.conf", "The path to the configuration file.")
+
 
 func init() {
-	// TODO: check that this was read in correctly.
-	conf, _ = config.New("recipes.conf")
+	flag.Parse()
+	c, err := config.New(*CONFIG_LOCATION)
+	conf = c
 	
-//	if err != nil {
-//		le := log.New("init", nil)
-//		le.Update(log.STATUS_FATAL, err.Error(), nil)
-//	}
+	if err != nil {
+		le := log.New("init", nil)
+		le.Update(log.STATUS_FATAL, err.Error(), nil)
+	}
 }
 
+
 // Fetch the index page for the "rate" URL path.
+/*
 func rate_index_handler(w http.ResponseWriter, r *http.Request) {
 	le := log.New("web_request", log.Fields{
 		"handler": "rate_index_handler",
@@ -75,6 +80,7 @@ func submit_response(w http.ResponseWriter, r *http.Request) {
 	w.Write( []byte("Success!") )
 	le.Update(log.STATUS_COMPLETE, "", nil)
 }
+*/
 
 func main() {
 	flag.Parse()
@@ -88,28 +94,28 @@ func main() {
 	r := mux.NewRouter()
 	// Supported API calls
 	// Specification at https://github.com/luke-segars/dinder-docs
-	r.HandleFunc("/users", router.User)
-	r.HandleFunc("/users/me", router.UserMe)
-	r.HandleFunc("/users/login", router.Login)
-	r.HandleFunc("/groups", router.Groups)
-	r.HandleFunc("/groups/{group_id}/user", router.GroupsIdUser)
-	r.HandleFunc("/meals/today", router.MealsToday)
-	r.HandleFunc("/meals/today/status", router.MealsTodayStatus)
-	r.HandleFunc("/meals/vote", router.MealsVote)
-	r.HandleFunc("/recipes", router.Recipes)
+	r.HandleFunc("/api/users", router.User)
+	r.HandleFunc("/api/users/me", router.UserMe)
+	r.HandleFunc("/api/users/login", router.Login)
+	r.HandleFunc("/api/groups", router.Groups)
+	r.HandleFunc("/api/groups/{group_id}/user", router.GroupsIdUser)
+	r.HandleFunc("/api/meals/today", router.MealsToday)
+	r.HandleFunc("/api/meals/today/status", router.MealsTodayStatus)
+	r.HandleFunc("/api/meals/vote", router.MealsVote)
+	r.HandleFunc("/api/recipes", router.Recipes)
 
 	// Standard web server HTTP requests
-	r.HandleFunc("/rate", rate_index_handler)
+//	r.HandleFunc("/rate", rate_index_handler)
 	// Serve any files in static/ directly from the filesystem.
-	r.HandleFunc("/rate/static/", func(w http.ResponseWriter, r *http.Request) {
-		le := log.New("web_request", log.Fields{
-			"handler": "<inline>",
-			"path": r.URL.Path[1:],
-		})
-
-		http.ServeFile(w, r, "html/"+r.URL.Path[1:])
-		le.Update(log.STATUS_COMPLETE, "", nil)
-	})
+//	r.HandleFunc("/rate/static/", func(w http.ResponseWriter, r *http.Request) {
+//		le := log.New("web_request", log.Fields{
+//			"handler": "<inline>",
+//			"path": r.URL.Path[1:],
+//		})
+//
+//		http.ServeFile(w, r, "html/"+r.URL.Path[1:])
+//		le.Update(log.STATUS_COMPLETE, "", nil)
+//	})
 	// No-op handler for favicon.ico, since it'll otherwise generate an extra call to index.
 	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	// Serve any files in static/ directly from the filesystem.

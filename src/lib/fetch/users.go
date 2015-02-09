@@ -14,11 +14,14 @@ import (
 var uc *mgo.Collection
 
 func init() {
-	conf, _ := config.New("recipes.conf")
+	conf, err := config.New("recipes.conf")
+	if err != nil {
+		log.Fatal("Couldn't load configuration file 'recipes.conf.'")
+	}
 	
 	session, err := mgo.Dial(conf.Mongo.ConnectionString())
 	if err != nil {
-		log.Fatal("Ingredient retrieval API can't connect to MongoDB instance: " + conf.Mongo.ConnectionString())
+		log.Fatal("User retrieval API can't connect to MongoDB instance: " + conf.Mongo.ConnectionString())
 	}
 	
 	uc = session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.UserCollection)

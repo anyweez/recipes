@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var uc *mgo.Collection
+
 func init() {
 	conf, err := config.New("recipes.conf")
 	if err != nil {
@@ -55,4 +57,12 @@ func CreateUser(user proto.User) (uint64, error) {
 	}
 
 	return *user.Id, nil
+}
+
+func NormalizeUser(user proto.User) proto.User {
+	user.Name = gproto.String("")
+	user.EmailAddress = gproto.String("")
+	user.CreateMs = gproto.Int64(0)
+
+	return user
 }

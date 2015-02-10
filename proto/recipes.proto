@@ -144,7 +144,7 @@ message Group {
 	optional uint64 id = 1;
 	optional string name = 2;
 	
-	repeated User users = 3;
+	repeated User members = 3;
 }
 
 // A container for holding a set of recipes, primarily for writing to

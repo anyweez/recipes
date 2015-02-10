@@ -28,7 +28,7 @@ const (
 func init() {
 	storage.Options = &sessions.Options{
 		//		Domain: "localhost",
-		Path: "/",
+		Path:     "/",
 		MaxAge:   3600 * 365, // 1 year
 		HttpOnly: true,
 	}

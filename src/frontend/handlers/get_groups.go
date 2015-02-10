@@ -21,7 +21,7 @@ func GetGroups(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		return
 	}
-	
+
 	// Retrieve the session
 	session, serr := storage.Get(r, UserDataSession)
 
@@ -29,15 +29,15 @@ func GetGroups(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		le.Update(log.STATUS_WARNING, "User data doesn't exist for logged in user:"+serr.Error(), nil)
 		return
 	}
-	
+
 	// Get the user object
 	ud, _ := session.Values[UserDataActiveUser]
-	groups, ferr := fetch.GroupsForUser( *ud.(*proto.User) )
+	groups, ferr := fetch.GroupsForUser(*ud.(*proto.User))
 
 	if ferr != nil {
-		le.Update(log.STATUS_ERROR, "Couldn't retrieve groups from database: " + ferr.Error(), nil)
+		le.Update(log.STATUS_ERROR, "Couldn't retrieve groups from database: "+ferr.Error(), nil)
 	}
-	
+
 	data, _ := json.Marshal(groups)
 	w.Write(data)
 }

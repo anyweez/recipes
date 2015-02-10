@@ -1,28 +1,17 @@
 package handlers
 
 import (
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	fee "frontend/errors"
 	"lib/fetch"
-	//	gproto "code.google.com/p/goprotobuf/proto"
-	//	"io/ioutil"
 	log "logging"
 	"net/http"
-	proto "proto"
-	//	"strings"
 )
 
 type LoginRequest struct {
 	Name         string
 	EmailAddress string
-}
-
-func init() {
-	// Register users to be encodable as gobs so that they can be stored
-	// in sessions.
-	gob.Register(&proto.User{})
 }
 
 func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
@@ -55,7 +44,7 @@ func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	}
 
 	// Check if the user is logged in already.
-	if _, exists := session.Values["user"].(string); exists {
+	if _, exists := session.Values[UserDataActiveUser].(string); exists {
 		le.Update(log.STATUS_WARNING, fmt.Sprintf("User is already logged in.", post_request.Name), nil)
 		return
 	}
@@ -74,7 +63,7 @@ func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		// If the user does exist, store their data in the session.
 	} else {
-		session.Values["user"] = user
+		session.Values[UserDataActiveUser] = user
 		werr := session.Save(r, w)
 
 		if werr != nil {

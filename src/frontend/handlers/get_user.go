@@ -9,10 +9,6 @@ import (
 	proto "proto"
 )
 
-type UserRequest struct {
-	Name string
-}
-
 func GetUser(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
@@ -35,8 +31,7 @@ func GetUser(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	}
 
 	// Get the user object
-	ud, _ := session.Values["user"]
-
+	ud, _ := session.Values[UserDataActiveUser]
 	user, ferr := fetch.UserById(*ud.(*proto.User).Id)
 
 	if ferr != nil {

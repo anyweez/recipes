@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-var uc *mgo.Collection
-
 func init() {
 	conf, err := config.New("recipes.conf")
 	if err != nil {

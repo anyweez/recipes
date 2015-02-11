@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/gorilla/sessions"
 	//	"github.com/gorilla/securecookie"
+	"lib/config"
 	log "logging"
 	"net/http"
+	"net/rpc"
 	proto "proto"
 )
 
@@ -17,6 +19,9 @@ var storage = sessions.NewCookieStore(
 //	securecookie.GenerateRandomKey(32),	// Encryption
 )
 
+// The recipe client (RPC).
+var res *rpc.Client
+
 const (
 	// Session elements
 	UserDataSession = "userdata"
@@ -26,6 +31,15 @@ const (
 )
 
 func init() {
+	le := log.New("init_handlers", nil)
+
+	// TODO: need to replace this.
+	conf, err := config.New("recipes.conf")
+	if err != nil {
+		le.Update(log.STATUS_FATAL, "Couldn't read configuration.", nil)
+		return
+	}
+	
 	storage.Options = &sessions.Options{
 		//		Domain: "localhost",
 		Path:     "/",
@@ -36,6 +50,14 @@ func init() {
 	// Register users to be encodable as gobs so that they can be stored
 	// in sessions.
 	gob.Register(&proto.User{})
+	
+	res, err = rpc.DialHTTP("tcp", conf.Rpc.ConnectionString())
+	if err != nil {
+		le.Update(log.STATUS_FATAL, "Couldn't connect to retriever: "+err.Error(), nil)
+		return
+	}
+
+	le.Update(log.STATUS_COMPLETE, "", nil)
 }
 
 /**

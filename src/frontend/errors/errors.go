@@ -34,6 +34,12 @@ var USER_DOESNT_EXIST = FrontendError{
 	ErrorCode: 103,
 }
 
+var MISSING_QUERY_PARAMS = FrontendError{
+	ErrorText: "Invalid or missing values for required query parameters",
+	HttpCode:  400,
+	ErrorCode: 104,	
+}
+
 var HANDLER_NOT_IMPLEMENTED = FrontendError{
 	ErrorText: "This API function hasn't been implemented yet.",
 	HttpCode:  501,

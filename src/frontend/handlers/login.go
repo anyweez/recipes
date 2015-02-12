@@ -45,13 +45,13 @@ func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 
 	// Check if the user is logged in already.
 	if _, exists := session.Values[UserDataActiveUser].(string); exists {
-		le.Update(log.STATUS_WARNING, fmt.Sprintf("User is already logged in.", post_request.Name), nil)
+		le.Update(log.STATUS_WARNING, fmt.Sprintf("User is already logged in.", post_request.EmailAddress), nil)
 		return
 	}
 
 	// Store the user's data in the encrypted session.
 	// TODO: validate the email address.
-	user, err := fetch.UserByName(post_request.Name)
+	user, err := fetch.UserByEmail(post_request.EmailAddress)
 
 	// If the user doesn't exist, return an error.
 	if err != nil {

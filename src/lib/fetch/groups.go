@@ -2,6 +2,7 @@ package fetch
 
 import (
 	gproto "code.google.com/p/goprotobuf/proto"
+	"errors"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"lib/config"
@@ -25,6 +26,14 @@ func init() {
 	}
 
 	gc = session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.GroupCollection)
+}
+
+func GroupById(group_id uint64) (proto.Group, error) {
+	var group proto.Group
+	
+	err := gc.Find(bson.M{"id": group_id}).One(&group)
+	
+	return group, err
 }
 
 func GroupsForUser(u proto.User) ([]*proto.Group, error) {
@@ -62,4 +71,30 @@ func CreateGroup(g proto.Group) (uint64, error) {
 	}
 
 	return *g.Id, nil
+}
+
+func AddUserToGroup(u proto.User, g proto.Group) error {
+	nu := NormalizeUser(u)
+	
+	// Fetch the group
+	group, err := GroupById(*g.Id)
+	if err != nil {
+		return err
+	}
+	
+	exists := false
+	for i := 0; i < len(group.Members); i++ {
+		if *group.Members[i].Id == *u.Id {
+			exists = true
+		}
+	}
+	
+	if !exists {
+		// Add the normalized user to the group.
+		group.Members = append(group.Members, &nu)
+	
+		return gc.Update(bson.M{"id":  group.Id}, group)
+	} else {
+		return errors.New("User already a member of group.")
+	}
 }

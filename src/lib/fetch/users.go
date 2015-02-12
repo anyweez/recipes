@@ -37,9 +37,10 @@ func UserById(user_id uint64) (proto.User, error) {
 	return user, err
 }
 
-func UserByName(name string) (proto.User, error) {
+// TODO: Hoping this can be a temporary function.
+func UserByEmail(name string) (proto.User, error) {
 	var user proto.User
-	err := uc.Find(bson.M{"name": name}).One(&user)
+	err := uc.Find(bson.M{"emailaddress": name}).One(&user)
 
 	return user, err
 }

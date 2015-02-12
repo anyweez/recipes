@@ -13,10 +13,11 @@ import (
 )
 
 type RecipeRequest struct {
-	GroupId		uint64
-	Count		int
+	GroupId uint64
+	Count   int
 }
 
+// TODO: clean up error handling here. There must be a better way once patterns emerge.
 func GetBestRecipes(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	if !IsLoggedIn(r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
@@ -29,7 +30,7 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	}
 
 	qry := r.URL.Query()
-	
+
 	gp, exists := qry["group_id"]
 	// If the param doesn't exist, error.
 	if len(gp) == 0 {
@@ -39,9 +40,9 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 
 		w.WriteHeader(err.HttpCode)
 		w.Write(data)
-		return		
+		return
 	}
-	
+
 	// Check for the existence and proper type of the group id
 	if _, terr := strconv.Atoi(gp[0]); terr != nil || !exists {
 		le.Update(log.STATUS_ERROR, "Invalid fields provided in get request.", nil)
@@ -52,10 +53,10 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		return
 	}
-	
+
 	tgid, _ := strconv.Atoi(gp[0])
 	groupid := uint64(tgid)
-	
+
 	cp, exists := qry["count"]
 	// If the param doesn't exist, error.
 	if len(cp) == 0 {
@@ -65,9 +66,9 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 
 		w.WriteHeader(err.HttpCode)
 		w.Write(data)
-		return		
+		return
 	}
-	
+
 	// Check for the existence and proper type of count.
 	if _, terr := strconv.Atoi(cp[0]); terr != nil {
 		le.Update(log.STATUS_ERROR, "Invalid fields provided in get request.", nil)
@@ -79,7 +80,6 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		return
 	}
 	count, _ := strconv.Atoi(cp[0])
-
 
 	// Retrieve the session
 	session, serr := storage.Get(r, UserDataSession)

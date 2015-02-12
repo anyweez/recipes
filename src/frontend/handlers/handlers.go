@@ -39,7 +39,7 @@ func init() {
 		le.Update(log.STATUS_FATAL, "Couldn't read configuration.", nil)
 		return
 	}
-	
+
 	storage.Options = &sessions.Options{
 		//		Domain: "localhost",
 		Path:     "/",
@@ -50,7 +50,7 @@ func init() {
 	// Register users to be encodable as gobs so that they can be stored
 	// in sessions.
 	gob.Register(&proto.User{})
-	
+
 	res, err = rpc.DialHTTP("tcp", conf.Rpc.ConnectionString())
 	if err != nil {
 		le.Update(log.STATUS_FATAL, "Couldn't connect to retriever: "+err.Error(), nil)

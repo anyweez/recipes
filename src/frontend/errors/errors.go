@@ -37,7 +37,7 @@ var USER_DOESNT_EXIST = FrontendError{
 var MISSING_QUERY_PARAMS = FrontendError{
 	ErrorText: "Invalid or missing values for required query parameters",
 	HttpCode:  400,
-	ErrorCode: 104,	
+	ErrorCode: 104,
 }
 
 var HANDLER_NOT_IMPLEMENTED = FrontendError{
@@ -50,4 +50,10 @@ var NOT_LOGGED_IN = FrontendError{
 	ErrorText: "The requested user is not logged in.",
 	HttpCode:  401,
 	ErrorCode: 201,
+}
+
+var COULDNT_COMPLETE_OPERATION = FrontendError{
+	ErrorText: "Couldn't complete the requested operation.",
+	HttpCode:  401,
+	ErrorCode: 301,	
 }

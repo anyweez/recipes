@@ -148,6 +148,28 @@ message Group {
 	optional int64 create_ms = 4;
 }
 
+message Meal {
+	optional uint64 id = 1;
+	optional Recipe recipe = 2;
+	optional Group group = 3;
+	optional int32 datecode = 4;
+	
+	repeated MealVote votes = 5;
+}
+
+message MealVote {
+	enum MealVoteStatus {
+		NOT_SET	= 1;
+		NO		= 2;
+		YES		= 3;
+		ABSTAIN	= 4;
+	}
+	
+	optional User user = 1;
+	optional Group group = 2;
+	optional MealVoteStatus status = 3;
+}
+
 // A container for holding a set of recipes, primarily for writing to
 // disk.
 message RecipeBook {

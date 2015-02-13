@@ -28,11 +28,24 @@ func init() {
 	gc = session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.GroupCollection)
 }
 
+/**
+ * Fetch user information for each user in the specified group.
+ */
+func DenormalizeUsers(group proto.Group) proto.Group {
+	for ui := 0; ui < len(group.Members); ui++ {
+			user, _ := UserById(*group.Members[ui].Id)
+			group.Members[ui] = &user
+	}
+	
+	return group
+}
+
 func GroupById(group_id uint64) (proto.Group, error) {
 	var group proto.Group
-	
+
 	err := gc.Find(bson.M{"id": group_id}).One(&group)
-	
+	group = DenormalizeUsers(group)
+
 	return group, err
 }
 
@@ -42,11 +55,10 @@ func GroupsForUser(u proto.User) ([]*proto.Group, error) {
 	err := gc.Find(bson.M{"members": bson.M{"$elemMatch": bson.M{"id": *u.Id}}}).All(&groups)
 
 	// Fetch all user data for the groups.
+	
 	for gi := 0; gi < len(groups); gi++ {
-		for ui := 0; ui < len(groups[gi].Members); ui++ {
-			user, _ := UserById(*groups[gi].Members[ui].Id)
-			groups[gi].Members[ui] = &user
-		}
+		group := DenormalizeUsers(*groups[gi])
+		groups[gi] = &group 
 	}
 
 	return groups, err
@@ -75,26 +87,38 @@ func CreateGroup(g proto.Group) (uint64, error) {
 
 func AddUserToGroup(u proto.User, g proto.Group) error {
 	nu := NormalizeUser(u)
-	
+
 	// Fetch the group
 	group, err := GroupById(*g.Id)
 	if err != nil {
 		return err
 	}
-	
+
 	exists := false
 	for i := 0; i < len(group.Members); i++ {
 		if *group.Members[i].Id == *u.Id {
 			exists = true
 		}
 	}
-	
+
 	if !exists {
 		// Add the normalized user to the group.
 		group.Members = append(group.Members, &nu)
-	
-		return gc.Update(bson.M{"id":  group.Id}, group)
+
+		return gc.Update(bson.M{"id": group.Id}, group)
 	} else {
 		return errors.New("User already a member of group.")
 	}
+}
+
+func NormalizeGroup(g proto.Group) proto.Group {
+	g.Name = gproto.String("")
+	g.CreateMs = gproto.Int64(0)
+	
+	for i := 0; i < len(g.Members); i++ {
+		user := NormalizeUser(*g.Members[i])
+		g.Members[i] = &user
+	}
+	
+	return g
 }

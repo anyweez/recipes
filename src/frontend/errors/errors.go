@@ -55,5 +55,5 @@ var NOT_LOGGED_IN = FrontendError{
 var COULDNT_COMPLETE_OPERATION = FrontendError{
 	ErrorText: "Couldn't complete the requested operation.",
 	HttpCode:  401,
-	ErrorCode: 301,	
+	ErrorCode: 301,
 }

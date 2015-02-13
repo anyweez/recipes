@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
-	fee "frontend/errors"
-	"fmt"
-	"github.com/gorilla/mux"
 	gproto "code.google.com/p/goprotobuf/proto"
+	"encoding/json"
+	"fmt"
+	fee "frontend/errors"
+	"github.com/gorilla/mux"
 	"lib/fetch"
 	log "logging"
 	"net/http"
@@ -25,7 +25,7 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		return
 	}
-	
+
 	// Get the user data from the post body
 	user := proto.User{}
 
@@ -49,7 +49,7 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	// an error indicating that there was an error with the data.
 	if err != nil || len(*user.EmailAddress) == 0 || groupid == 0 {
 		fmt.Println(groupid)
-		fmt.Println( user.EmailAddress )
+		fmt.Println(user.EmailAddress)
 		le.Update(log.STATUS_ERROR, "Invalid post data or missing parameter", nil)
 		e := fee.INVALID_POST_DATA
 		data, _ := json.Marshal(e)
@@ -61,7 +61,7 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 
 	// Get the user object
 	user, err = fetch.UserByEmail(*user.EmailAddress)
-	
+
 	if err != nil {
 		le.Update(log.STATUS_ERROR, "User doesn't exist: "+err.Error(), nil)
 		e := fee.USER_DOESNT_EXIST
@@ -69,9 +69,9 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 
 		w.WriteHeader(e.HttpCode)
 		w.Write(data)
-		return	
+		return
 	}
-	
+
 	ferr := fetch.AddUserToGroup(user, proto.Group{
 		Id: gproto.Uint64(groupid),
 	})
@@ -83,7 +83,7 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 
 		w.WriteHeader(e.HttpCode)
 		w.Write(data)
-		return	
+		return
 	}
 
 	le.Update(log.STATUS_OK, "", log.Fields{

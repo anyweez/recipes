@@ -23,7 +23,7 @@ func init() {
 
 	session, err := mgo.Dial(conf.Mongo.ConnectionString())
 	if err != nil {
-		log.Fatal("Recipe retrieval API can't connect to MongoDB instance: " + conf.Mongo.ConnectionString())
+		log.Fatal("[fetch/recipes] Recipe retrieval API can't connect to MongoDB instance: " + conf.Mongo.ConnectionString())
 	}
 
 	rc = session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)

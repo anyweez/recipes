@@ -154,10 +154,10 @@ message Meal {
 	optional Group group = 3;
 	optional int32 datecode = 4;
 	
-	repeated MealVote votes = 5;
+	repeated RecipeVote votes = 5;
 }
 
-message MealVote {
+message RecipeVote {
 	enum MealVoteStatus {
 		NOT_SET	= 1;
 		NO		= 2;
@@ -165,9 +165,12 @@ message MealVote {
 		ABSTAIN	= 4;
 	}
 	
-	optional User user = 1;
-	optional Group group = 2;
-	optional MealVoteStatus status = 3;
+	optional uint64 id = 1;
+	optional User user = 2;
+	optional Group group = 3;
+	optional Meal meal = 4;
+	optional Recipe recipe = 5;
+	optional MealVoteStatus status = 6;
 }
 
 // A container for holding a set of recipes, primarily for writing to

@@ -31,7 +31,7 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 
 	qry := r.URL.Query()
 
-	gp, exists := qry["group_id"]
+	gp, exists := qry["group"]
 	// If the param doesn't exist, error.
 	if len(gp) == 0 {
 		le.Update(log.STATUS_ERROR, "Invalid fields provided in get request.", nil)

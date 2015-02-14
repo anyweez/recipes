@@ -24,7 +24,8 @@ type MongoConfig struct {
 	ResponseCollection       string
 	UserCollection           string
 	GroupCollection          string
-	MealsCollection			 string
+	MealsCollection          string
+	VotesCollection			 string
 }
 
 type RPCConfig struct {

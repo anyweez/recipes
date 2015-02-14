@@ -3,6 +3,7 @@ package fetch
 import (
 	gproto "code.google.com/p/goprotobuf/proto"
 	"errors"
+	"fmt"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"lib/config"
@@ -17,7 +18,7 @@ var gc *mgo.Collection
 func init() {
 	conf, err := config.New("recipes.conf")
 	if err != nil {
-		log.Fatal("Couldn't load configuration file 'recipes.conf.'")
+		log.Fatal("[fetch/groups] Couldn't load configuration file 'recipes.conf': " + err.Error())
 	}
 
 	session, err := mgo.Dial(conf.Mongo.ConnectionString())
@@ -33,20 +34,24 @@ func init() {
  */
 func DenormalizeUsers(group proto.Group) proto.Group {
 	for ui := 0; ui < len(group.Members); ui++ {
-			user, _ := UserById(*group.Members[ui].Id)
-			group.Members[ui] = &user
+		user, _ := UserById(*group.Members[ui].Id)
+		group.Members[ui] = &user
 	}
-	
+
 	return group
 }
 
 func GroupById(group_id uint64) (proto.Group, error) {
 	var group proto.Group
-
+	// TODO: change this to a real number.
 	err := gc.Find(bson.M{"id": group_id}).One(&group)
-	group = DenormalizeUsers(group)
 
-	return group, err
+	if err != nil {
+		fmt.Println( fmt.Sprintf("Error retrieving group #%d", group_id) ) 
+		return proto.Group{}, err
+	}
+
+	return DenormalizeUsers(group), err
 }
 
 func GroupsForUser(u proto.User) ([]*proto.Group, error) {
@@ -55,10 +60,10 @@ func GroupsForUser(u proto.User) ([]*proto.Group, error) {
 	err := gc.Find(bson.M{"members": bson.M{"$elemMatch": bson.M{"id": *u.Id}}}).All(&groups)
 
 	// Fetch all user data for the groups.
-	
+
 	for gi := 0; gi < len(groups); gi++ {
 		group := DenormalizeUsers(*groups[gi])
-		groups[gi] = &group 
+		groups[gi] = &group
 	}
 
 	return groups, err
@@ -114,11 +119,11 @@ func AddUserToGroup(u proto.User, g proto.Group) error {
 func NormalizeGroup(g proto.Group) proto.Group {
 	g.Name = gproto.String("")
 	g.CreateMs = gproto.Int64(0)
-	
+
 	for i := 0; i < len(g.Members); i++ {
 		user := NormalizeUser(*g.Members[i])
 		g.Members[i] = &user
 	}
-	
+
 	return g
 }

@@ -3,13 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	fee "frontend/errors"
+	"frontend/state"
 	"lib/fetch"
 	log "logging"
 	"net/http"
 	proto "proto"
 )
 
-func GetUser(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func GetUser(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
 	if !IsLoggedIn(r) {

@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	fee "frontend/errors"
+	"frontend/state"
 	"github.com/gorilla/mux"
+
 	"lib/fetch"
 	log "logging"
 	"net/http"
@@ -13,7 +15,7 @@ import (
 	"strconv"
 )
 
-func AddUserToGroup(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func AddUserToGroup(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
 	if !IsLoggedIn(r) {

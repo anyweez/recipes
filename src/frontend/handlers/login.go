@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	fee "frontend/errors"
+	"frontend/state"
 	"lib/fetch"
 	log "logging"
 	"net/http"
@@ -14,7 +15,7 @@ type LoginRequest struct {
 	EmailAddress string
 }
 
-func Login(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	post_request := LoginRequest{}
 
 	decoder := json.NewDecoder(r.Body)

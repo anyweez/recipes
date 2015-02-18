@@ -4,6 +4,7 @@ import (
 	gproto "code.google.com/p/goprotobuf/proto"
 	"encoding/json"
 	fee "frontend/errors"
+	"frontend/state"
 	"lib/fetch"
 	log "logging"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 	"strconv"
 )
 
-func GetTodaysMeal(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func GetTodaysMeal(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
 	if !IsLoggedIn(r) {
@@ -66,7 +67,7 @@ func GetTodaysMeal(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	votes := fetch.VotesForMeal(meal)
 	// For each member of the group, check to see if they've abstained.
 	// If not, see if a vote's been cast yet.
-	for i := 0; i < len(meal.Group.Members); i++ {		
+	for i := 0; i < len(meal.Group.Members); i++ {
 		// Check to see if the user has abstained for this meal.
 		abstained := false
 		for k := 0; k < len(meal.Votes); k++ {
@@ -74,7 +75,7 @@ func GetTodaysMeal(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 				abstained = true
 			}
 		}
-		
+
 		// If not, check to see if their vote has been cast.
 		if !abstained {
 			for j := 0; j < len(votes); j++ {

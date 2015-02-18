@@ -47,7 +47,7 @@ func GroupById(group_id uint64) (proto.Group, error) {
 	err := gc.Find(bson.M{"id": group_id}).One(&group)
 
 	if err != nil {
-		fmt.Println( fmt.Sprintf("Error retrieving group #%d", group_id) ) 
+		fmt.Println(fmt.Sprintf("Error retrieving group #%d", group_id))
 		return proto.Group{}, err
 	}
 

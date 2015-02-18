@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/gob"
 	"fmt"
+	"frontend/state"
 	"github.com/gorilla/sessions"
 	//	"github.com/gorilla/securecookie"
 	"lib/config"
@@ -66,7 +67,7 @@ func init() {
  *
  * It is a generic interface for other functions in this package.
  */
-type Handler func(w http.ResponseWriter, r *http.Request, le log.LogEvent)
+type Handler func(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent)
 
 /**
  * Registries contain mappings between HTTP methods (GET, POST, etc) and

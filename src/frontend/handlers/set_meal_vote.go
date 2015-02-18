@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
 	gproto "code.google.com/p/goprotobuf/proto"
+	"encoding/json"
 	fee "frontend/errors"
-	log "logging"
+	"frontend/state"
 	"lib/fetch"
+	log "logging"
 	"math/rand"
 	"net/http"
 	proto "proto"
@@ -13,16 +14,16 @@ import (
 )
 
 type RecipeVoteRequest struct {
-	Vote	bool
-	Recipe	string
-	Group	uint64
+	Vote   bool
+	Recipe string
+	Group  uint64
 }
 
 // 1. Store vote in votes collection
 // 2. Check to see if num votes == num group members
 //       if yes, copy into meal
 //       if no, do nothing
-func SetMealVote(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func SetMealVote(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
 	if !IsLoggedIn(r) {
@@ -34,7 +35,7 @@ func SetMealVote(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		return
 	}
-	
+
 	// Get parameters from the post body
 	rvr := RecipeVoteRequest{}
 
@@ -50,7 +51,7 @@ func SetMealVote(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		return
 	}
-	
+
 	status := proto.RecipeVote_YES
 	if !rvr.Vote {
 		status = proto.RecipeVote_NO
@@ -72,29 +73,29 @@ func SetMealVote(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	group := proto.Group{
 		Id: gproto.Uint64(rvr.Group),
 	}
-	
+
 	// TODO: handle this error.
 	meal, _ := fetch.GetCurrentMeal(group)
 	recipe := fetch.Recipe(rvr.Recipe)
 	nu := fetch.NormalizeUser(user)
-	
+
 	vote := proto.RecipeVote{
-		Id: gproto.Uint64( uint64(rand.Uint32()) ),
-		User: &nu,
-		Group: &group,
-		Meal: &meal,
+		Id:     gproto.Uint64(uint64(rand.Uint32())),
+		User:   &nu,
+		Group:  &group,
+		Meal:   &meal,
 		Recipe: &recipe,
 		Status: &status,
 	}
-	
+
 	// Store the vote.
 	fetch.StoreVote(vote)
-	
+
 	// Check to see whether there's agreement on this recipe.
 	// If so, copy the recipe into the meal object.
 	if fetch.CheckForQuorum(vote) {
 		meal.Recipe = &recipe
-		
+
 		fetch.UpdateMeal(meal)
 	}
 }

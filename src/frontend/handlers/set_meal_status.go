@@ -1,21 +1,22 @@
 package handlers
 
 import (
-	"encoding/json"
 	gproto "code.google.com/p/goprotobuf/proto"
+	"encoding/json"
 	fee "frontend/errors"
-	log "logging"
+	"frontend/state"
 	"lib/fetch"
+	log "logging"
 	"net/http"
 	proto "proto"
 )
 
 type MealStatus struct {
-	Group		uint64
-	Available	bool
+	Group     uint64
+	Available bool
 }
 
-func SetMealStatus(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func SetMealStatus(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
 	if !IsLoggedIn(r) {
@@ -27,7 +28,7 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		return
 	}
-	
+
 	// Get parameters from the post body
 	ms := MealStatus{}
 
@@ -43,16 +44,16 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		return
 	}
-	
+
 	status := proto.RecipeVote_NOT_SET
 	if !ms.Available {
 		status = proto.RecipeVote_ABSTAIN
 	}
-	
+
 	meal, merr := fetch.GetCurrentMeal(proto.Group{
 		Id: gproto.Uint64(ms.Group),
 	})
-	
+
 	if merr != nil {
 		le.Update(log.STATUS_ERROR, "Invalid post data: "+merr.Error(), nil)
 		e := fee.COULDNT_COMPLETE_OPERATION
@@ -62,7 +63,7 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 		w.Write(data)
 		return
 	}
-	
+
 	session, serr := storage.Get(r, "userdata")
 
 	if serr != nil {
@@ -73,7 +74,7 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 	// Get the user object
 	ud, _ := session.Values[UserDataActiveUser]
 	user, _ := fetch.UserById(*ud.(*proto.User).Id)
-	
+
 	// Check to see if a vote already exists. If so, set it to ABSTAIN.
 	// If not, create a new vote object and mark it as ABSTAIN.
 	added := false
@@ -83,19 +84,19 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
 			added = true
 		}
 	}
-	
+
 	if !added {
 		user := fetch.NormalizeUser(user)
 		group := fetch.NormalizeGroup(proto.Group{
-				Id: gproto.Uint64(ms.Group),
+			Id: gproto.Uint64(ms.Group),
 		})
-		
+
 		meal.Votes = append(meal.Votes, &proto.RecipeVote{
-			User: &user,
-			Group: &group,
+			User:   &user,
+			Group:  &group,
 			Status: &status,
 		})
 	}
-	
+
 	fetch.UpdateMeal(meal)
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	fee "frontend/errors"
+	"frontend/state"
 	"lib/fetch"
 	log "logging"
 	"net/http"
@@ -13,7 +14,7 @@ import (
  * Creates a new group and saves it to persistent storage. Groups are
  * denormalized in the backend and joined together during serving time.
  */
-func CreateGroup(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func CreateGroup(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
 	if !IsLoggedIn(r) {

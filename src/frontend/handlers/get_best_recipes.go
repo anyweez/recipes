@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	fee "frontend/errors"
+	"frontend/state"
 	log "logging"
 	"math/rand"
 	"net/http"
@@ -18,7 +19,7 @@ type RecipeRequest struct {
 }
 
 // TODO: clean up error handling here. There must be a better way once patterns emerge.
-func GetBestRecipes(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func GetBestRecipes(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	if !IsLoggedIn(r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
 		err := fee.NOT_LOGGED_IN

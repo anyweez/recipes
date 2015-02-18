@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	fee "frontend/errors"
+	"frontend/state"
 	fetch "lib/fetch"
 	log "logging"
 	"net/http"
@@ -13,7 +14,7 @@ import (
  * This method creates a new user with the information included in the
  * body of the request.
  */
-func CreateNewUser(w http.ResponseWriter, r *http.Request, le log.LogEvent) {
+func CreateNewUser(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	// Get the user data from the post body
 	user := proto.User{}
 

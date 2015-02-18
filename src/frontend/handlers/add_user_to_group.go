@@ -7,7 +7,6 @@ import (
 	fee "frontend/errors"
 	"frontend/state"
 	"github.com/gorilla/mux"
-
 	"lib/fetch"
 	log "logging"
 	"net/http"
@@ -16,6 +15,8 @@ import (
 )
 
 func AddUserToGroup(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
+	fetchme := fetch.NewFetcher(ss)
+
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
 	if !IsLoggedIn(r) {
@@ -62,7 +63,7 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, ss *state.SharedStat
 	}
 
 	// Get the user object
-	user, err = fetch.UserByEmail(*user.EmailAddress)
+	user, err = fetchme.UserByEmail(*user.EmailAddress)
 
 	if err != nil {
 		le.Update(log.STATUS_ERROR, "User doesn't exist: "+err.Error(), nil)
@@ -74,7 +75,7 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, ss *state.SharedStat
 		return
 	}
 
-	ferr := fetch.AddUserToGroup(user, proto.Group{
+	ferr := fetchme.AddUserToGroup(user, proto.Group{
 		Id: gproto.Uint64(groupid),
 	})
 

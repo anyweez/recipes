@@ -9,16 +9,18 @@ package main
  * on offline processes to do a bunch of quality work.
  */
 
+// TODO: lib/fetch needs to be updated to new API, including passing config object.
+
 import (
 	"bytes"
-	gproto "code.google.com/p/goprotobuf/proto"
+	//	gproto "code.google.com/p/goprotobuf/proto"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"lib/config"
-	"lib/fetch"
+	//	"lib/fetch"
 	log "logging"
 	"math/rand"
 	"net/http"
@@ -46,10 +48,12 @@ type GraphNode struct {
  * autocomplete, etc.
  */
 func (r *Retriever) GetIngredients(na string, ingr *[]proto.Ingredient) error {
-	for _, in := range fetch.AllIngredients() {
-		*ingr = append(*ingr, in)
-	}
-
+	/*
+		fetchme := fetch.NewFetcher()
+		for _, in := range fetchme.AllIngredients() {
+			*ingr = append(*ingr, in)
+		}
+	*/
 	return nil
 }
 
@@ -62,51 +66,53 @@ func (r *Retriever) GetIngredients(na string, ingr *[]proto.Ingredient) error {
  * recipes (lightly filtered).
  */
 func (r *Retriever) GetBestRecipes(request BestRecipesRequest, recipes *[]proto.Recipe) error {
-	// Create a stable request ID for this RPC call.
-	le := log.New("GetBestRecipe", log.Fields{
-		"userid":  request.UserId,
-		"groupid": request.GroupId,
-	})
-
-	// Seed the random number generator
-	rand.Seed(request.Seed)
-
-	// Connect to Mongo
-	session, err := mgo.Dial(conf.Mongo.ConnectionString())
-	defer session.Close()
-
-	if err != nil {
-		le.Update(log.STATUS_FATAL, "Couldn't connect to MongoDB instance.", log.Fields{
-			"db":   conf.Mongo.DatabaseName,
-			"ip":   conf.Mongo.Address,
-			"port": conf.Mongo.Port,
+	/*
+		// Create a stable request ID for this RPC call.
+		le := log.New("GetBestRecipe", log.Fields{
+			"userid":  request.UserId,
+			"groupid": request.GroupId,
 		})
-	}
 
-	// Get as many recommended recipes as possible (up to request.Count).
-	rset := fetchRecommended(session, request, request.Count)
-	numRecommended := len(rset)
+		// Seed the random number generator
+		rand.Seed(request.Seed)
 
-	// If we didn't find as many recipes as requested, find some more (probably
-	// lower quality recipes) to backfill with and merge the two lists together.
-	//
-	// Note that this is likely slower than fetchRecommended so the goal is
-	// to make it relatively unlikely that this branch is required. The main
-	// lever we have for that is the size of the recommended recipes cache.
-	if numRecommended < request.Count {
-		rset = merge(rset, fetchMore(session, request, request.Count-len(rset)))
-	}
+		// Connect to Mongo
+		session, err := mgo.Dial(conf.Mongo.ConnectionString())
+		defer session.Close()
 
-	for _, recipe := range rset {
-		// TODO: copy over to recommended if it doesn't exist and update ServingStatus
-		*recipes = append(*recipes, recipe)
-	}
+		if err != nil {
+			le.Update(log.STATUS_FATAL, "Couldn't connect to MongoDB instance.", log.Fields{
+				"db":   conf.Mongo.DatabaseName,
+				"ip":   conf.Mongo.Address,
+				"port": conf.Mongo.Port,
+			})
+		}
 
-	// Log the completion of the event.
-	le.Update(log.STATUS_COMPLETE, "", log.Fields{
-		"recommended": numRecommended,
-		"more":        len(rset) - numRecommended,
-	})
+		// Get as many recommended recipes as possible (up to request.Count).
+		rset := fetchRecommended(session, request, request.Count)
+		numRecommended := len(rset)
+
+		// If we didn't find as many recipes as requested, find some more (probably
+		// lower quality recipes) to backfill with and merge the two lists together.
+		//
+		// Note that this is likely slower than fetchRecommended so the goal is
+		// to make it relatively unlikely that this branch is required. The main
+		// lever we have for that is the size of the recommended recipes cache.
+		if numRecommended < request.Count {
+			rset = merge(rset, fetchMore(session, request, request.Count-len(rset)))
+		}
+
+		for _, recipe := range rset {
+			// TODO: copy over to recommended if it doesn't exist and update ServingStatus
+			*recipes = append(*recipes, recipe)
+		}
+
+		// Log the completion of the event.
+		le.Update(log.STATUS_COMPLETE, "", log.Fields{
+			"recommended": numRecommended,
+			"more":        len(rset) - numRecommended,
+		})
+	*/
 	return nil
 }
 
@@ -258,61 +264,62 @@ func (r *Retriever) GetRecipeResponse(request RecipeResponseRequest, response *[
  * and commit.
  */
 func (r *Retriever) PostRecipeResponse(request RecipeResponse, success *bool) error {
-	// Create a stable logging request for this RPC call.
-	le := log.New("PostRecipeResponse", log.Fields{
-		"userid":   request.UserId,
-		"groupid":  request.GroupId,
-		"recipeid": request.RecipeId,
-	})
+	/*
+		// Create a stable logging request for this RPC call.
+		le := log.New("PostRecipeResponse", log.Fields{
+			"userid":   request.UserId,
+			"groupid":  request.GroupId,
+			"recipeid": request.RecipeId,
+		})
 
-	// Connect to Mongo
-	session, err := mgo.Dial(conf.Mongo.ConnectionString())
-	if err != nil {
-		return err
-	}
-	defer session.Close()
+		// Connect to Mongo
+		session, err := mgo.Dial(conf.Mongo.ConnectionString())
+		if err != nil {
+			return err
+		}
+		defer session.Close()
 
-	c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.ResponseCollection)
-	// Atomically fetch proto.RecipeResponses object by request.GroupId,
-	// and add this respones as another Response.
-	user, _ := fetch.UserById(request.UserId)
-	recipe := fetch.Recipe(request.RecipeId)
-	resp_enum := proto.RecipeResponses_RecipeResponse_NO
-	if request.Response {
-		resp_enum = proto.RecipeResponses_RecipeResponse_YES
-	}
-
-	cnt, err := c.Find(bson.M{"group_id": request.GroupId}).Count()
-	if err != nil {
-		le.Update(log.STATUS_ERROR, err.Error(), nil)
-	}
-
-	resp := proto.RecipeResponses_RecipeResponse{
-		User:     &user,
-		Response: &resp_enum,
-		Recipe:   &recipe,
-	}
-
-	// Append to the existing record.
-	// TODO: simplify this by using an upsert?
-	if cnt > 0 {
-		rr := proto.RecipeResponses{}
-		c.Find(bson.M{"group_id": request.GroupId}).One(&rr)
-
-		rr.Responses = append(rr.Responses, &resp)
-		c.Update(bson.M{"group_id": request.GroupId}, rr)
-		// Create a new record.
-	} else {
-		rr := proto.RecipeResponses{
-			GroupId: gproto.Uint64(request.GroupId),
+		c := session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.ResponseCollection)
+		// Atomically fetch proto.RecipeResponses object by request.GroupId,
+		// and add this respones as another Response.
+		user, _ := fetch.UserById(request.UserId)
+		recipe := fetch.Recipe(request.RecipeId)
+		resp_enum := proto.RecipeResponses_RecipeResponse_NO
+		if request.Response {
+			resp_enum = proto.RecipeResponses_RecipeResponse_YES
 		}
 
-		rr.Responses = append(rr.Responses, &resp)
-		c.Insert(rr)
-	}
+		cnt, err := c.Find(bson.M{"group_id": request.GroupId}).Count()
+		if err != nil {
+			le.Update(log.STATUS_ERROR, err.Error(), nil)
+		}
 
-	le.Update(log.STATUS_COMPLETE, "", nil)
+		resp := proto.RecipeResponses_RecipeResponse{
+			User:     &user,
+			Response: &resp_enum,
+			Recipe:   &recipe,
+		}
 
+		// Append to the existing record.
+		// TODO: simplify this by using an upsert?
+		if cnt > 0 {
+			rr := proto.RecipeResponses{}
+			c.Find(bson.M{"group_id": request.GroupId}).One(&rr)
+
+			rr.Responses = append(rr.Responses, &resp)
+			c.Update(bson.M{"group_id": request.GroupId}, rr)
+			// Create a new record.
+		} else {
+			rr := proto.RecipeResponses{
+				GroupId: gproto.Uint64(request.GroupId),
+			}
+
+			rr.Responses = append(rr.Responses, &resp)
+			c.Insert(rr)
+		}
+
+		le.Update(log.STATUS_COMPLETE, "", nil)
+	*/
 	return nil
 }
 

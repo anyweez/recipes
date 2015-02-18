@@ -1,10 +1,7 @@
 package fetch
 
 import (
-	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"lib/config"
-	"log"
 	proto "proto"
 )
 
@@ -16,22 +13,9 @@ type PageRecord struct {
 	Content []byte
 }
 
-var rc *mgo.Collection
-
-func init() {
-	conf, _ := config.New("recipes.conf")
-
-	session, err := mgo.Dial(conf.Mongo.ConnectionString())
-	if err != nil {
-		log.Fatal("[fetch/recipes] Recipe retrieval API can't connect to MongoDB instance: " + conf.Mongo.ConnectionString())
-	}
-
-	rc = session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.RecipeCollection)
-}
-
-func Recipe(recipeId string) proto.Recipe {
+func (f *Fetcher) Recipe(recipeId string) proto.Recipe {
 	recipe := proto.Recipe{}
-	rc.Find(bson.M{"id": recipeId}).One(&recipe)
+	f.SS.Database.Recipes.Find(bson.M{"id": recipeId}).One(&recipe)
 
 	return recipe
 }
@@ -42,9 +26,9 @@ func Recipe(recipeId string) proto.Recipe {
  * to comfortably store in RAM) then this calling this function may be
  * a bad idea.
  */
-func AllRecipes() []proto.Recipe {
+func (f *Fetcher) AllRecipes() []proto.Recipe {
 	recipes := make([]proto.Recipe, 0)
-	iter := rc.Find(nil).Iter()
+	iter := f.SS.Database.Recipes.Find(nil).Iter()
 
 	recipe := proto.Recipe{}
 	for iter.Next(&recipe) {

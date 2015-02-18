@@ -4,72 +4,41 @@ import (
 	gproto "code.google.com/p/goprotobuf/proto"
 	"errors"
 	"fmt"
-	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"lib/config"
-	"log"
 	"math/rand"
 	proto "proto"
 	"time"
 )
 
-var gc *mgo.Collection
-
-func init() {
-	conf, err := config.New("recipes.conf")
-	if err != nil {
-		log.Fatal("[fetch/groups] Couldn't load configuration file 'recipes.conf': " + err.Error())
-	}
-
-	session, err := mgo.Dial(conf.Mongo.ConnectionString())
-	if err != nil {
-		log.Fatal("User retrieval API can't connect to MongoDB instance: " + conf.Mongo.ConnectionString())
-	}
-
-	gc = session.DB(conf.Mongo.DatabaseName).C(conf.Mongo.GroupCollection)
-}
-
-/**
- * Fetch user information for each user in the specified group.
- */
-func DenormalizeUsers(group proto.Group) proto.Group {
-	for ui := 0; ui < len(group.Members); ui++ {
-		user, _ := UserById(*group.Members[ui].Id)
-		group.Members[ui] = &user
-	}
-
-	return group
-}
-
-func GroupById(group_id uint64) (proto.Group, error) {
+func (f *Fetcher) GroupById(group_id uint64) (proto.Group, error) {
 	var group proto.Group
 	// TODO: change this to a real number.
-	err := gc.Find(bson.M{"id": group_id}).One(&group)
+	err := f.SS.Database.Groups.Find(bson.M{"id": group_id}).One(&group)
 
 	if err != nil {
 		fmt.Println(fmt.Sprintf("Error retrieving group #%d", group_id))
 		return proto.Group{}, err
 	}
 
-	return DenormalizeUsers(group), err
+	return f.DenormalizeUsers(group), err
 }
 
-func GroupsForUser(u proto.User) ([]*proto.Group, error) {
+func (f *Fetcher) GroupsForUser(u proto.User) ([]*proto.Group, error) {
 	var groups []*proto.Group
 
-	err := gc.Find(bson.M{"members": bson.M{"$elemMatch": bson.M{"id": *u.Id}}}).All(&groups)
+	err := f.SS.Database.Groups.Find(bson.M{"members": bson.M{"$elemMatch": bson.M{"id": *u.Id}}}).All(&groups)
 
 	// Fetch all user data for the groups.
 
 	for gi := 0; gi < len(groups); gi++ {
-		group := DenormalizeUsers(*groups[gi])
+		group := f.DenormalizeUsers(*groups[gi])
 		groups[gi] = &group
 	}
 
 	return groups, err
 }
 
-func CreateGroup(g proto.Group) (uint64, error) {
+func (f *Fetcher) CreateGroup(g proto.Group) (uint64, error) {
 	rand.Seed(time.Now().UnixNano())
 	// TODO: replace this with something guaranteed to be unique
 	g.Id = gproto.Uint64(uint64(rand.Int63()))
@@ -77,11 +46,11 @@ func CreateGroup(g proto.Group) (uint64, error) {
 
 	// Clear out the fields that shouldn't be stored.
 	for i := 0; i < len(g.Members); i++ {
-		nu := NormalizeUser(*g.Members[i])
+		nu := f.NormalizeUser(*g.Members[i])
 		g.Members[i] = &nu
 	}
 
-	err := gc.Insert(g)
+	err := f.SS.Database.Groups.Insert(g)
 
 	if err != nil {
 		return 0, err
@@ -90,11 +59,11 @@ func CreateGroup(g proto.Group) (uint64, error) {
 	return *g.Id, nil
 }
 
-func AddUserToGroup(u proto.User, g proto.Group) error {
-	nu := NormalizeUser(u)
+func (f *Fetcher) AddUserToGroup(u proto.User, g proto.Group) error {
+	nu := f.NormalizeUser(u)
 
 	// Fetch the group
-	group, err := GroupById(*g.Id)
+	group, err := f.GroupById(*g.Id)
 	if err != nil {
 		return err
 	}
@@ -110,20 +79,32 @@ func AddUserToGroup(u proto.User, g proto.Group) error {
 		// Add the normalized user to the group.
 		group.Members = append(group.Members, &nu)
 
-		return gc.Update(bson.M{"id": group.Id}, group)
+		return f.SS.Database.Groups.Update(bson.M{"id": group.Id}, group)
 	} else {
 		return errors.New("User already a member of group.")
 	}
 }
 
-func NormalizeGroup(g proto.Group) proto.Group {
+func (f *Fetcher) NormalizeGroup(g proto.Group) proto.Group {
 	g.Name = gproto.String("")
 	g.CreateMs = gproto.Int64(0)
 
 	for i := 0; i < len(g.Members); i++ {
-		user := NormalizeUser(*g.Members[i])
+		user := f.NormalizeUser(*g.Members[i])
 		g.Members[i] = &user
 	}
 
 	return g
+}
+
+/**
+ * Fetch user information for each user in the specified group.
+ */
+func (f *Fetcher) DenormalizeUsers(group proto.Group) proto.Group {
+	for ui := 0; ui < len(group.Members); ui++ {
+		user, _ := f.UserById(*group.Members[ui].Id)
+		group.Members[ui] = &user
+	}
+
+	return group
 }

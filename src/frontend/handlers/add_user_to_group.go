@@ -19,7 +19,7 @@ func AddUserToGroup(w http.ResponseWriter, r *http.Request, ss *state.SharedStat
 
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
-	if !IsLoggedIn(r) {
+	if !IsLoggedIn(ss, r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
 		err := fee.NOT_LOGGED_IN
 		data, _ := json.Marshal(err)

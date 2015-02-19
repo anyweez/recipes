@@ -17,9 +17,11 @@ type MealStatus struct {
 }
 
 func SetMealStatus(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
+	fetchme := fetch.NewFetcher(ss)
+
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
-	if !IsLoggedIn(r) {
+	if !IsLoggedIn(ss, r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
 		err := fee.NOT_LOGGED_IN
 		data, _ := json.Marshal(err)
@@ -50,7 +52,7 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, ss *state.SharedState
 		status = proto.RecipeVote_ABSTAIN
 	}
 
-	meal, merr := fetch.GetCurrentMeal(proto.Group{
+	meal, merr := fetchme.GetCurrentMeal(proto.Group{
 		Id: gproto.Uint64(ms.Group),
 	})
 
@@ -64,7 +66,7 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, ss *state.SharedState
 		return
 	}
 
-	session, serr := storage.Get(r, "userdata")
+	session, serr := ss.Session.Get(r, "userdata")
 
 	if serr != nil {
 		le.Update(log.STATUS_WARNING, "User data doesn't exist for logged in user:"+serr.Error(), nil)
@@ -72,8 +74,8 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, ss *state.SharedState
 	}
 
 	// Get the user object
-	ud, _ := session.Values[UserDataActiveUser]
-	user, _ := fetch.UserById(*ud.(*proto.User).Id)
+	ud, _ := session.Values[state.UserDataActiveUser]
+	user, _ := fetchme.UserById(*ud.(*proto.User).Id)
 
 	// Check to see if a vote already exists. If so, set it to ABSTAIN.
 	// If not, create a new vote object and mark it as ABSTAIN.
@@ -86,8 +88,8 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, ss *state.SharedState
 	}
 
 	if !added {
-		user := fetch.NormalizeUser(user)
-		group := fetch.NormalizeGroup(proto.Group{
+		user := fetchme.NormalizeUser(user)
+		group := fetchme.NormalizeGroup(proto.Group{
 			Id: gproto.Uint64(ms.Group),
 		})
 
@@ -98,5 +100,5 @@ func SetMealStatus(w http.ResponseWriter, r *http.Request, ss *state.SharedState
 		})
 	}
 
-	fetch.UpdateMeal(meal)
+	fetchme.UpdateMeal(meal)
 }

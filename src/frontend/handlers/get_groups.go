@@ -11,9 +11,11 @@ import (
 )
 
 func GetGroups(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
+	fetchme := fetch.NewFetcher(ss)
+
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
-	if !IsLoggedIn(r) {
+	if !IsLoggedIn(ss, r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
 		err := fee.NOT_LOGGED_IN
 		data, _ := json.Marshal(err)
@@ -24,7 +26,7 @@ func GetGroups(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le
 	}
 
 	// Retrieve the session
-	session, serr := storage.Get(r, UserDataSession)
+	session, serr := ss.Session.Get(r, state.UserDataSession)
 
 	if serr != nil {
 		le.Update(log.STATUS_WARNING, "User data doesn't exist for logged in user:"+serr.Error(), nil)
@@ -32,8 +34,8 @@ func GetGroups(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le
 	}
 
 	// Get the user object
-	ud, _ := session.Values[UserDataActiveUser]
-	groups, ferr := fetch.GroupsForUser(*ud.(*proto.User))
+	ud, _ := session.Values[state.UserDataActiveUser]
+	groups, ferr := fetchme.GroupsForUser(*ud.(*proto.User))
 
 	if ferr != nil {
 		le.Update(log.STATUS_ERROR, "Couldn't retrieve groups from database: "+ferr.Error(), nil)

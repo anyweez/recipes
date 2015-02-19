@@ -20,7 +20,7 @@ type RecipeRequest struct {
 
 // TODO: clean up error handling here. There must be a better way once patterns emerge.
 func GetBestRecipes(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
-	if !IsLoggedIn(r) {
+	if !IsLoggedIn(ss, r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
 		err := fee.NOT_LOGGED_IN
 		data, _ := json.Marshal(err)
@@ -83,7 +83,7 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, ss *state.SharedStat
 	count, _ := strconv.Atoi(cp[0])
 
 	// Retrieve the session
-	session, serr := storage.Get(r, UserDataSession)
+	session, serr := ss.Session.Get(r, state.UserDataSession)
 
 	if serr != nil {
 		le.Update(log.STATUS_WARNING, "User data doesn't exist for logged in user:"+serr.Error(), nil)
@@ -91,7 +91,7 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, ss *state.SharedStat
 	}
 
 	// Get the user object
-	ud, _ := session.Values[UserDataActiveUser]
+	ud, _ := session.Values[state.UserDataActiveUser]
 	// Generate a random seed used to specify which recipes should be
 	// selected lacking stronger signals.
 	// TODO: move this to serverside.
@@ -99,7 +99,7 @@ func GetBestRecipes(w http.ResponseWriter, r *http.Request, ss *state.SharedStat
 	seed := int64(rand.Int())
 
 	recipes := make([]proto.Recipe, 0)
-	err := res.Call("Retriever.GetBestRecipes", retrieve.BestRecipesRequest{
+	err := ss.Retriever.Call("Retriever.GetBestRecipes", retrieve.BestRecipesRequest{
 		Seed:    seed,
 		UserId:  *ud.(*proto.User).Id,
 		GroupId: groupid,

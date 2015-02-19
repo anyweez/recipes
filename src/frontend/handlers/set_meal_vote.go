@@ -24,9 +24,11 @@ type RecipeVoteRequest struct {
 //       if yes, copy into meal
 //       if no, do nothing
 func SetMealVote(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
+	fetchme := fetch.NewFetcher(ss)
+
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
-	if !IsLoggedIn(r) {
+	if !IsLoggedIn(ss, r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
 		err := fee.NOT_LOGGED_IN
 		data, _ := json.Marshal(err)
@@ -57,7 +59,7 @@ func SetMealVote(w http.ResponseWriter, r *http.Request, ss *state.SharedState, 
 		status = proto.RecipeVote_NO
 	}
 
-	session, serr := storage.Get(r, "userdata")
+	session, serr := ss.Session.Get(r, "userdata")
 
 	if serr != nil {
 		le.Update(log.STATUS_WARNING, "User data doesn't exist for logged in user:"+serr.Error(), nil)
@@ -65,8 +67,8 @@ func SetMealVote(w http.ResponseWriter, r *http.Request, ss *state.SharedState, 
 	}
 
 	// Get the user object
-	ud, _ := session.Values[UserDataActiveUser]
-	user, _ := fetch.UserById(*ud.(*proto.User).Id)
+	ud, _ := session.Values[state.UserDataActiveUser]
+	user, _ := fetchme.UserById(*ud.(*proto.User).Id)
 
 	rand.Seed(time.Now().Unix())
 
@@ -75,9 +77,9 @@ func SetMealVote(w http.ResponseWriter, r *http.Request, ss *state.SharedState, 
 	}
 
 	// TODO: handle this error.
-	meal, _ := fetch.GetCurrentMeal(group)
-	recipe := fetch.Recipe(rvr.Recipe)
-	nu := fetch.NormalizeUser(user)
+	meal, _ := fetchme.GetCurrentMeal(group)
+	recipe := fetchme.Recipe(rvr.Recipe)
+	nu := fetchme.NormalizeUser(user)
 
 	vote := proto.RecipeVote{
 		Id:     gproto.Uint64(uint64(rand.Uint32())),
@@ -89,13 +91,13 @@ func SetMealVote(w http.ResponseWriter, r *http.Request, ss *state.SharedState, 
 	}
 
 	// Store the vote.
-	fetch.StoreVote(vote)
+	fetchme.StoreVote(vote)
 
 	// Check to see whether there's agreement on this recipe.
 	// If so, copy the recipe into the meal object.
-	if fetch.CheckForQuorum(vote) {
+	if fetchme.CheckForQuorum(vote) {
 		meal.Recipe = &recipe
 
-		fetch.UpdateMeal(meal)
+		fetchme.UpdateMeal(meal)
 	}
 }

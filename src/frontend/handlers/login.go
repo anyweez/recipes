@@ -16,6 +16,7 @@ type LoginRequest struct {
 }
 
 func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
+	fetchme := fetch.NewFetcher(ss)
 	post_request := LoginRequest{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -31,7 +32,7 @@ func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log
 		return
 	}
 
-	session, serr := storage.Get(r, "userdata")
+	session, serr := ss.Session.Get(r, "userdata")
 
 	// If the session couldn't be decoded, we've got to return an error.
 	// This shouldn't happen unless something were to go wrong.
@@ -45,14 +46,14 @@ func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log
 	}
 
 	// Check if the user is logged in already.
-	if _, exists := session.Values[UserDataActiveUser].(string); exists {
+	if _, exists := session.Values[state.UserDataActiveUser].(string); exists {
 		le.Update(log.STATUS_WARNING, fmt.Sprintf("User is already logged in.", post_request.EmailAddress), nil)
 		return
 	}
 
 	// Store the user's data in the encrypted session.
 	// TODO: validate the email address.
-	user, err := fetch.UserByEmail(post_request.EmailAddress)
+	user, err := fetchme.UserByEmail(post_request.EmailAddress)
 
 	// If the user doesn't exist, return an error.
 	if err != nil {
@@ -64,7 +65,7 @@ func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log
 		w.Write(data)
 		// If the user does exist, store their data in the session.
 	} else {
-		session.Values[UserDataActiveUser] = user
+		session.Values[state.UserDataActiveUser] = user
 		werr := session.Save(r, w)
 
 		if werr != nil {

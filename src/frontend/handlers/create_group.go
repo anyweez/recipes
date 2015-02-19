@@ -15,9 +15,11 @@ import (
  * denormalized in the backend and joined together during serving time.
  */
 func CreateGroup(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
+	fetchme := fetch.NewFetcher(ss)
+
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
-	if !IsLoggedIn(r) {
+	if !IsLoggedIn(ss, r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
 		err := fee.NOT_LOGGED_IN
 		data, _ := json.Marshal(err)
@@ -46,7 +48,7 @@ func CreateGroup(w http.ResponseWriter, r *http.Request, ss *state.SharedState, 
 	}
 
 	// Get the user object
-	gid, ferr := fetch.CreateGroup(grp)
+	gid, ferr := fetchme.CreateGroup(grp)
 
 	if ferr != nil {
 		le.Update(log.STATUS_ERROR, "Couldn't create group on persistent storage: "+ferr.Error(), nil)

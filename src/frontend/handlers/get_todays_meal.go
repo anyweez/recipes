@@ -13,9 +13,11 @@ import (
 )
 
 func GetTodaysMeal(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
+	fetchme := fetch.NewFetcher(ss)
+
 	// If the requested user isn't logged in there's nothing we can do
 	// for them.
-	if !IsLoggedIn(r) {
+	if !IsLoggedIn(ss, r) {
 		le.Update(log.STATUS_WARNING, "User not logged in.", nil)
 		err := fee.NOT_LOGGED_IN
 		data, _ := json.Marshal(err)
@@ -50,7 +52,7 @@ func GetTodaysMeal(w http.ResponseWriter, r *http.Request, ss *state.SharedState
 		return
 	}
 
-	meal, err := fetch.GetCurrentMeal(proto.Group{
+	meal, err := fetchme.GetCurrentMeal(proto.Group{
 		Id: gproto.Uint64(groupid),
 	})
 
@@ -64,7 +66,7 @@ func GetTodaysMeal(w http.ResponseWriter, r *http.Request, ss *state.SharedState
 		return
 	}
 
-	votes := fetch.VotesForMeal(meal)
+	votes := fetchme.VotesForMeal(meal)
 	// For each member of the group, check to see if they've abstained.
 	// If not, see if a vote's been cast yet.
 	for i := 0; i < len(meal.Group.Members); i++ {

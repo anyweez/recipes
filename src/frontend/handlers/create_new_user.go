@@ -15,6 +15,8 @@ import (
  * body of the request.
  */
 func CreateNewUser(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
+	fetchme := fetch.NewFetcher(ss)
+
 	// Get the user data from the post body
 	user := proto.User{}
 
@@ -34,7 +36,7 @@ func CreateNewUser(w http.ResponseWriter, r *http.Request, ss *state.SharedState
 	}
 
 	// TODO: check to make sure it only includes valid characters
-	_, err = fetch.CreateUser(user)
+	_, err = fetchme.CreateUser(user)
 
 	if err != nil {
 		le.Update(log.STATUS_ERROR, "Couldn't create user:"+err.Error(), nil)

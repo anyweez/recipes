@@ -19,7 +19,12 @@ func main() {
 		le.Update(log.STATUS_FATAL, err.Error(), nil)
 	}
 
-	fes := NewFrontendServer(conf, le)
+	fes, ferr := NewFrontendServer(conf, le)
+	if ferr != nil {
+		le.Update(log.STATUS_ERROR, "Couldn't initialize server: "+ferr.Error(), nil)
+		return
+	}
+
 	// Start responding to requests. This is not expected to ever stop except
 	// when explicitly killed.
 	err = fes.Start()

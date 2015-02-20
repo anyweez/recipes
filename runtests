@@ -7,6 +7,10 @@ PACKAGES=(`go list ./...`)
 mongo rectest --eval "db.dropDatabase()"
 mongorestore test/db/ -d rectest
 
+# Start a retriever instance
+go build retrieve
+./retrieve &
+
 # For each package, check to see whether it's a package that needs
 # to be tested. If so, run `go test <package_name>`
 for pack in ${PACKAGES[*]}; do
@@ -18,7 +22,9 @@ for pack in ${PACKAGES[*]}; do
 	done
 	
 	if [ $valid == true ]; then
-		echo $pack
-#		go test $pack
+		go test $pack
 	fi
 done
+
+# Cleanup
+pkill retrieve

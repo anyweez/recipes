@@ -4,6 +4,7 @@ import (
 	gcfg "code.google.com/p/gcfg"
 	"errors"
 	"fmt"
+	"os"
 )
 
 type RecipesConfig struct {
@@ -44,6 +45,9 @@ type FrontendConfig struct {
 func New(filename string) (RecipesConfig, error) {
 	c := RecipesConfig{}
 	// Read the configuration.
+	path, _ := os.Getwd()
+	fmt.Println(path)
+
 	err := gcfg.ReadFileInto(&c, filename)
 	if err != nil {
 		return c, errors.New("Error reading configuration file: " + err.Error())

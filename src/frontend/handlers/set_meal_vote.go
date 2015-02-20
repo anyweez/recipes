@@ -19,10 +19,6 @@ type RecipeVoteRequest struct {
 	Group  uint64
 }
 
-// 1. Store vote in votes collection
-// 2. Check to see if num votes == num group members
-//       if yes, copy into meal
-//       if no, do nothing
 func SetMealVote(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	fetchme := fetch.NewFetcher(ss)
 

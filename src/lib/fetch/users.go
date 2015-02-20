@@ -19,9 +19,9 @@ func (f *Fetcher) UserById(user_id uint64) (proto.User, error) {
 }
 
 // TODO: Hoping this can be a temporary function.
-func (f *Fetcher) UserByEmail(name string) (proto.User, error) {
+func (f *Fetcher) UserByEmail(email string) (proto.User, error) {
 	var user proto.User
-	err := f.SS.Database.Users.Find(bson.M{"emailaddress": name}).One(&user)
+	err := f.SS.Database.Users.Find(bson.M{"emailaddress": email}).One(&user)
 
 	return user, err
 }

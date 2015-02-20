@@ -1,10 +1,14 @@
 #!/bin/bash
 
 EXCLUDE=(code.google.com github.com golang.org labix.org gopkg.in launchpad.net)
-#PACKAGES=(code.google.com/test github.com/nope/test extract)
 PACKAGES=(`go list ./...`)
 
+# Drop an existing test database if it exists, then recreate it.
+mongo rectest --eval "db.dropDatabase()"
+mongorestore test/db/ -d rectest
 
+# For each package, check to see whether it's a package that needs
+# to be tested. If so, run `go test <package_name>`
 for pack in ${PACKAGES[*]}; do
 	valid=true
 	for ex in ${EXCLUDE[*]}; do
@@ -14,6 +18,7 @@ for pack in ${PACKAGES[*]}; do
 	done
 	
 	if [ $valid == true ]; then
-		go test $pack
+		echo $pack
+#		go test $pack
 	fi
 done

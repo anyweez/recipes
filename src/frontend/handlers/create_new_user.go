@@ -17,9 +17,19 @@ import (
 func CreateNewUser(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	fetchme := fetch.NewFetcher(ss)
 
-	// Get the user data from the post body
-	user := proto.User{}
+	// Check to make sure that a body was provided; if not it will be set to nil.
+	if r.Body == nil {
+		le.Update(log.STATUS_ERROR, "No post body provided.", nil)
+		e := fee.INVALID_POST_DATA
+		data, _ := json.Marshal(e)
 
+		w.WriteHeader(e.HttpCode)
+		w.Write(data)
+		return
+	}
+
+	// Get the user data from the post body
+	var user proto.User
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&user)
 

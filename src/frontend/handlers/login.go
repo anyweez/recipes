@@ -17,8 +17,19 @@ type LoginRequest struct {
 
 func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log.LogEvent) {
 	fetchme := fetch.NewFetcher(ss)
-	post_request := LoginRequest{}
 
+	// Check to make sure that a body was provided; if not it will be set to nil.
+	if r.Body == nil {
+		le.Update(log.STATUS_ERROR, "No post body provided.", nil)
+		e := fee.INVALID_POST_DATA
+		data, _ := json.Marshal(e)
+
+		w.WriteHeader(e.HttpCode)
+		w.Write(data)
+		return
+	}
+
+	var post_request LoginRequest
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&post_request)
 
@@ -32,7 +43,7 @@ func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log
 		return
 	}
 
-	session, serr := ss.Session.Get(r, "userdata")
+	session, serr := ss.Session.Get(r, state.UserDataSession)
 
 	// If the session couldn't be decoded, we've got to return an error.
 	// This shouldn't happen unless something were to go wrong.
@@ -53,6 +64,7 @@ func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log
 
 	// Store the user's data in the encrypted session.
 	// TODO: validate the email address.
+	le.Update(log.STATUS_OK, "Finding user `"+post_request.EmailAddress+"`", nil)
 	user, err := fetchme.UserByEmail(post_request.EmailAddress)
 
 	// If the user doesn't exist, return an error.

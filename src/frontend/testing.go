@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	ConfigPath = "/home/luke/git/recipes/recipes.conf"
+	ConfigPath = "/home/luke/git/recipes/recipes.test.conf"
 )
 
 /**

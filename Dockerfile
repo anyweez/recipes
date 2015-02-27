@@ -5,5 +5,4 @@ MAINTAINER Luke Segars <luke@lukesegars.com>
 # and install dependencies.
 RUN apt-get update && apt-get install git golang mercurial bzr --yes
 RUN mkdir server; cd server; git clone https://github.com/luke-segars/recipes.git
-RUN cd recipes; ls
 RUN cd server/recipes; ./build

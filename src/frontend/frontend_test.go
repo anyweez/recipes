@@ -18,7 +18,7 @@ func TestEndpointsExist(t *testing.T) {
 		for method := range registry {
 			// Note that this is inverted from the normal use csae; checking
 			// to see if 404 is returned and if so that's a problem.
-			_, err := NewHttpTest(path, method, path, 404)
+			_, _, err := NewHttpTest(path, method, path, nil, 404)
 
 			//
 			if err == nil {
@@ -45,7 +45,7 @@ func TestLoggedOutRequests(t *testing.T) {
 
 	// Test all get methods.
 	for name := range get {
-		_, err := NewHttpTest(name, "GET", get[name], 401)
+		_, _, err := NewHttpTest(name, "GET", get[name], nil, 401)
 
 		if err != nil {
 			t.Errorf("%s: %s", name, err.Error())
@@ -59,9 +59,9 @@ func TestLoggedOutRequests(t *testing.T) {
 		"TestSetMealVote":    "/api/meals/vote",
 	}
 
-	// Test all get methods.
+	// Test all post methods.
 	for name := range post {
-		_, err := NewHttpTest(name, "POST", post[name], 401)
+		_, _, err := NewHttpTest(name, "POST", post[name], nil, 401)
 
 		if err != nil {
 			t.Errorf("%s: %s", name, err.Error())

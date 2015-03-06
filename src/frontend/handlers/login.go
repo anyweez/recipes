@@ -77,6 +77,7 @@ func Login(w http.ResponseWriter, r *http.Request, ss *state.SharedState, le log
 		w.Write(data)
 		// If the user does exist, store their data in the session.
 	} else {
+		le.Update(log.STATUS_OK, fmt.Sprintf("User #%d found.", user.Id), nil)
 		session.Values[state.UserDataActiveUser] = user
 		werr := session.Save(r, w)
 

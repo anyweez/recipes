@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-const BASE_URL = "http://localhost:13033"
-
 /**
  * Test to ensure that no groups are returned for a user that doesn't have any groups.
  * (also tests to make sure the login works correctly.)

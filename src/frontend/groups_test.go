@@ -21,9 +21,29 @@ func TestNoGroups(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	client.QueueRequest(TestLogin(handlers.LoginRequest{
+	// Login
+	_, lstatus, lerr := client.DoTest(TestLogin(handlers.LoginRequest{
 		EmailAddress: "theo@bald.com",
 	}))
+
+	if lerr != nil {
+		t.Error(lerr.Error())
+	}
+
+	if lstatus != 200 {
+		t.Error("Issues with logging in.")
+	}
+
+	// Retrieve
+	_, gstatus, gerr := client.DoTest(TestGetGroups())
+
+	if gerr != nil {
+		t.Error(gerr.Error())
+	}
+
+	if gstate != 200 {
+		t.Error("Error retrieving groups.")
+	}
 
 	_, status, rerr := client.Run()
 

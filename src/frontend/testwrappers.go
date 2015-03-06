@@ -15,6 +15,9 @@ import (
 
 const BASE_URL = "http://localhost:13033"
 
+/**
+ * Login using the LoginRequest info provided.
+ */
 func TestLogin(user handlers.LoginRequest) (*http.Request, error) {
 	data, jerr := json.Marshal(user)
 	if jerr != nil {
@@ -30,8 +33,6 @@ func TestLogin(user handlers.LoginRequest) (*http.Request, error) {
 	return req, nil
 }
 
-/*
 func TestGetGroups() (*http.Request, error) {
-
+	return http.NewRequest("GET", BASE_URL+"/api/groups/", nil)
 }
-*/

@@ -6,7 +6,6 @@
 # server port) to the local machines port 13033. The docker instance is also explicitly named "frontend",
 # so if more than one server need to be run simultaneously then you'd need to remove the explicitly mapping
 # for both the port and instance name and then handle the dynamic port selection on the local machine.
-
 FROM ubuntu:14.04
 MAINTAINER Luke Segars <luke@lukesegars.com>
 
